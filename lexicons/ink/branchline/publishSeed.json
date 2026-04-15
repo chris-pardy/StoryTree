@@ -1,0 +1,92 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.publishSeed",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Plant a seed — publish a new root bud by redeeming an ink.branchline.seedGrant the caller holds. The AppView verifies: (1) the grant exists and its CID matches; (2) the caller's DID equals the grant's `recipient`; (3) the chain of predecessor grants walks back to a root held by a trusted grantor, with every hop's `holder.did == previous.recipient`; (4) no grant in the chain is revoked or already committed in a prior bud. On success the AppView writes an ink.branchline.bud record referencing the grant to the caller's PDS and atomically commits every grant in the chain in its local ledger so the chain cannot be spent again. Rejection reasons are named below. Continuing an existing bud (replies) uses ink.branchline.publishBud instead.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["grantUri", "title", "text"],
+          "properties": {
+            "grantUri": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "AT-URI of the ink.branchline.seedGrant being redeemed. Must name a grant whose current recipient is the caller."
+            },
+            "title": {
+              "type": "string",
+              "maxGraphemes": 120,
+              "maxLength": 1200
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 20000
+            },
+            "formatting": {
+              "type": "array",
+              "description": "Byte-offset inline formatting spans over `text`.",
+              "items": {
+                "type": "ref",
+                "ref": "ink.branchline.bud#formatSpan"
+              }
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "format": "cid"
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "Unauthorized",
+          "description": "The caller is not signed in."
+        },
+        {
+          "name": "GrantNotFound",
+          "description": "No ink.branchline.seedGrant record exists at `grantUri`, or it could not be fetched from its holder's PDS."
+        },
+        {
+          "name": "GrantNotYours",
+          "description": "The caller's DID does not match the grant's `recipient`. Only the recipient may plant or gift a grant."
+        },
+        {
+          "name": "GrantRevoked",
+          "description": "The grant, or a predecessor in its chain, has been deleted from its holding repo before being committed into a bud."
+        },
+        {
+          "name": "GrantAlreadySpent",
+          "description": "The grant, or a predecessor in its chain, has already been committed into a different bud. Grants are single-use."
+        },
+        {
+          "name": "ChainBroken",
+          "description": "The grant chain failed validation — a holder's DID did not match the preceding grant's recipient, or the chain exceeded the maximum depth."
+        },
+        {
+          "name": "UntrustedGrantor",
+          "description": "The chain does not terminate at a root grant held by a DID the AppView trusts to mint seed grants."
+        },
+        {
+          "name": "WordLimitExceeded",
+          "description": "The bud text exceeds the 500-word ceiling."
+        }
+      ]
+    }
+  }
+}

@@ -4,7 +4,7 @@
   "defs": {
     "main": {
       "type": "record",
-      "description": "A bud: one contribution to a story tree. Freshly written buds grow for 24h (not yet followable); after that they open as 'blooms' that other writers can extend; past 48h without children they lock into 'branches'. These lifecycle stages are views of the same record, not different record types. The AppView enforces a 500-word ceiling on `text` (counted via Unicode word segmentation); writes that exceed it are rejected as WordLimitExceeded.",
+      "description": "A bud: one contribution to a story tree. Freshly written buds grow for 24h (not yet followable); after that they open as 'blooms' that other writers can extend; past 48h without children they lock into 'branches'. These lifecycle stages are views of the same record, not different record types. The AppView enforces a 500-word ceiling on `text` (counted via Unicode word segmentation); writes that exceed it are rejected as WordLimitExceeded. A bud is either a continuation (`parent` set) or a root (`parent` unset). Root buds authored by a trusted seed author are accepted as-is; other root buds must carry `grant` as a strong ref to an ink.branchline.seedGrant authorizing this author to plant a seed. `parent` and `grant` are mutually exclusive.",
       "key": "tid",
       "record": {
         "type": "object",
@@ -22,7 +22,13 @@
           },
           "parent": {
             "type": "ref",
-            "ref": "com.atproto.repo.strongRef"
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Strong ref to the parent bud being continued. Mutually exclusive with `grant`. Absent on roots."
+          },
+          "grant": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Strong ref to the ink.branchline.seedGrant this bud was planted from. Mutually exclusive with `parent`. Only valid on root buds whose author matches the grant's terminal `recipient`; the AppView walks the grant chain back to a trusted grantor and rejects the bud if any hop fails."
           },
           "createdAt": {
             "type": "string",
