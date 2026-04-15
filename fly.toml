@@ -1,8 +1,9 @@
 # Managed Postgres (Basic plan, shared-2x / 1GB, ~$38/mo + $0.28/GB storage):
-#   fly mpg create --name branchline-db --plan basic --region iad
-#   fly mpg attach branchline-db -a branchline
+#   fly mpg create --name branchline-db --plan basic --region iad --org branchline
+#   fly mpg list --org branchline                 # grab the cluster ID
+#   fly mpg attach <cluster-id> -a branchline-ink # attach takes the ID, not the name
 
-app = "branchline"
+app = "branchline-ink"
 primary_region = "iad"
 
 [build]

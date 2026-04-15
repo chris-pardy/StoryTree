@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "INDEXER_ENABLED=true vite dev --port 3000 --host 127.0.0.1",
     "build": "vite build",
+    "predeploy": "vite build",
+    "deploy": "fly deploy -a branchline-ink",
     "start": "node server.js",
     "preview": "vite preview",
     "test": "vitest run",

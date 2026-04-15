@@ -16,8 +16,11 @@ RUN pnpm install --frozen-lockfile
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Intentionally no `pnpm build` — we ship the locally-built dist/ instead to
+# avoid a cross-platform CSS hash mismatch between vite's server and client
+# passes under the Fly Docker builder. The `predeploy` script in package.json
+# regenerates dist/ on the developer's machine before every deploy.
 RUN DATABASE_URL=postgresql://build-placeholder pnpm prisma generate && \
-    pnpm build && \
     pnpm prune --prod
 
 FROM node:${NODE_VERSION}-slim AS runtime

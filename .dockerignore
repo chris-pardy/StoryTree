@@ -13,7 +13,12 @@ node_modules
 .wrangler
 .output
 .vinxi
-dist
+# dist is intentionally NOT ignored: local `pnpm build` output is shipped into
+# the image instead of rebuilding in Docker, because the cross-platform Docker
+# build produces a CSS hash mismatch between the server and client vite passes
+# (server bundle hardcodes one styles-*.css hash, client bundle emits another).
+# Local builds are deterministic between passes, so we use those. The
+# `predeploy` script in package.json ensures dist is fresh before every deploy.
 dist-ssr
 src/generated
 README.md
