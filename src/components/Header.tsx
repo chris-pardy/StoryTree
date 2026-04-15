@@ -12,11 +12,16 @@ export default function Header({ did }: { did: string | null }) {
 				</Link>
 				<div className="site-masthead-actions">
 					{did ? (
-						<form method="post" action="/api/auth/logout">
-							<button type="submit" className="site-auth-button">
-								Sign out
-							</button>
-						</form>
+						<>
+							<Link to="/seeds" className="site-auth-button">
+								Seeds
+							</Link>
+							<form method="post" action="/api/auth/logout">
+								<button type="submit" className="site-auth-button">
+									Sign out
+								</button>
+							</form>
+						</>
 					) : (
 						<Link to="/login" className="site-auth-button">
 							Sign in

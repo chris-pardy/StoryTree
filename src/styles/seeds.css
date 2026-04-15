@@ -1,0 +1,142 @@
+/* ──────────────────────────────────────────────────────────────
+   Seeds page — unclaimed seed grants, plant & gift flows
+   ────────────────────────────────────────────────────────────── */
+
+.seed-empty {
+	margin-top: 3rem;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-size: 1.05rem;
+	color: color-mix(in oklab, var(--sea-ink-soft) 68%, transparent);
+	text-align: center;
+}
+
+.seed-list {
+	margin: 3rem 0 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.seed-card {
+	padding: 1.2rem 1.35rem 1rem;
+	border: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
+	border-radius: 0.6rem;
+	background: color-mix(in oklab, var(--lagoon-deep) 2%, transparent);
+	transition: border-color 160ms ease;
+}
+
+.seed-card:hover {
+	border-color: color-mix(in oklab, var(--lagoon-deep) 35%, transparent);
+}
+
+.seed-card-meta {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	font-family: var(--font-sans);
+	font-size: 0.64rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: color-mix(in oklab, var(--sea-ink-soft) 62%, transparent);
+}
+
+.seed-card-from em {
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-size: 0.82rem;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--sea-ink);
+}
+
+.seed-card-note {
+	margin: 0.85rem 0 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-size: 1.05rem;
+	line-height: 1.5;
+	color: color-mix(in oklab, var(--sea-ink) 85%, transparent);
+}
+
+.seed-card-actions {
+	margin-top: 1.1rem;
+	display: flex;
+	align-items: baseline;
+	gap: 1.4rem;
+	font-family: var(--font-sans);
+	font-size: 0.64rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+.seed-card-action {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	color: color-mix(in oklab, var(--sea-ink-soft) 78%, transparent);
+	cursor: pointer;
+	transition: color 160ms ease;
+}
+
+.seed-card-action:hover,
+.seed-card-action:focus-visible {
+	color: var(--lagoon-deep);
+	outline: none;
+}
+
+.seed-gift-form {
+	margin-top: 3.2rem;
+}
+
+.seed-gift-label {
+	display: block;
+	margin-bottom: 0.55rem;
+	font-family: var(--font-sans);
+	font-size: 0.64rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: color-mix(in oklab, var(--sea-ink-soft) 72%, transparent);
+}
+
+.seed-gift-input {
+	display: block;
+	width: 100%;
+	margin: 0 0 1.25rem;
+	padding: 0.7rem 0;
+	border: 0;
+	border-bottom: 1px solid
+		color-mix(in oklab, var(--sea-ink-soft) 22%, transparent);
+	outline: 0;
+	background: transparent;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-size: 1.35rem;
+	line-height: 1.22;
+	letter-spacing: -0.012em;
+	color: var(--sea-ink);
+	caret-color: var(--lagoon-deep);
+	transition: border-color 160ms ease;
+}
+
+.seed-gift-input:focus {
+	border-bottom-color: color-mix(in oklab, var(--lagoon-deep) 55%, transparent);
+}
+
+.seed-gift-input::placeholder {
+	color: color-mix(in oklab, var(--sea-ink-soft) 38%, transparent);
+}
+
+.seed-gift-input:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
