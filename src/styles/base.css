@@ -1,0 +1,110 @@
+html,
+body,
+#app {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	color: var(--sea-ink);
+	font-family: var(--font-sans);
+	background-color: var(--bg-base);
+	background-image:
+		radial-gradient(900px 480px at 50% -12%, var(--hero-a), transparent 70%),
+		linear-gradient(
+			180deg,
+			color-mix(in oklab, var(--sand) 82%, white) 0%,
+			var(--foam) 58%,
+			var(--bg-base) 100%
+		);
+	background-attachment: fixed;
+	overflow-x: hidden;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+	opacity: 0.35;
+	background:
+		radial-gradient(
+			circle at 82% 12%,
+			rgba(79, 184, 178, 0.12),
+			transparent 48%
+		),
+		radial-gradient(circle at 12% 92%, rgba(47, 106, 74, 0.08), transparent 50%);
+}
+
+a {
+	color: var(--lagoon-deep);
+	text-decoration-color: rgba(50, 143, 151, 0.4);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+a:hover {
+	color: #246f76;
+}
+
+code {
+	font-size: 0.9em;
+	border: 1px solid var(--line);
+	background: color-mix(in oklab, var(--surface-strong) 82%, white 18%);
+	border-radius: 7px;
+	padding: 2px 7px;
+}
+
+pre code {
+	border: 0;
+	background: transparent;
+	padding: 0;
+	border-radius: 0;
+	font-size: inherit;
+	color: inherit;
+}
+
+.prose pre {
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: #1d2e45;
+	color: #e8efff;
+}
+
+button,
+a {
+	transition:
+		background-color 220ms ease,
+		color 220ms ease,
+		border-color 220ms ease,
+		transform 220ms ease,
+		opacity 220ms ease;
+}
+
+.rise-in {
+	animation: rise-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rise-in {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		background-color: var(--background);
+		color: var(--foreground);
+	}
+}

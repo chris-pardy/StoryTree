@@ -1,0 +1,80 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.publishBud",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Publish a new bud as a continuation of an existing parent. The caller must be signed in. The AppView writes an ink.branchline.bud record to the caller's PDS and mirrors it into the local read cache so the new bud is immediately navigable. Rejection reasons mirror ink.branchline.bud create validation — 500-word limit on `text`, 24h parent growing window, self-reply, etc. Root buds are not created through this procedure; they are written directly to an allowlisted author's PDS and picked up by the indexer.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["parentUri", "title", "text"],
+          "properties": {
+            "parentUri": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "AT-URI of the parent bud being continued."
+            },
+            "title": {
+              "type": "string",
+              "maxGraphemes": 120,
+              "maxLength": 1200
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 20000
+            },
+            "formatting": {
+              "type": "array",
+              "description": "Byte-offset inline formatting spans over `text`.",
+              "items": {
+                "type": "ref",
+                "ref": "ink.branchline.bud#formatSpan"
+              }
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "format": "cid"
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "Unauthorized",
+          "description": "The caller is not signed in."
+        },
+        {
+          "name": "ParentNotFound",
+          "description": "The parent bud does not exist in the AppView."
+        },
+        {
+          "name": "SelfReply",
+          "description": "The caller is the parent bud's author. Buds cannot continue themselves."
+        },
+        {
+          "name": "ParentGrowing",
+          "description": "The parent bud is still inside its 24h growing window."
+        },
+        {
+          "name": "WordLimitExceeded",
+          "description": "The bud text exceeds the 500-word ceiling."
+        }
+      ]
+    }
+  }
+}

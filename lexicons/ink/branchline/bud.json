@@ -1,0 +1,62 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.bud",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A bud: one contribution to a story tree. Freshly written buds grow for 24h (not yet followable); after that they open as 'blooms' that other writers can extend; past 48h without children they lock into 'branches'. These lifecycle stages are views of the same record, not different record types. The AppView enforces a 500-word ceiling on `text` (counted via Unicode word segmentation); writes that exceed it are rejected as WordLimitExceeded.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["title", "text", "createdAt"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxGraphemes": 120,
+            "maxLength": 1200
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 20000,
+            "maxGraphemes": 10000
+          },
+          "parent": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "formatting": {
+            "type": "array",
+            "items": {
+              "type": "ref",
+              "ref": "#formatSpan"
+            }
+          }
+        }
+      }
+    },
+    "formatSpan": {
+      "type": "object",
+      "required": ["start", "end", "type"],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte offset (inclusive) into `text` where the span begins."
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte offset (exclusive) into `text` where the span ends."
+        },
+        "type": {
+          "type": "string",
+          "knownValues": ["bold", "italic", "underline", "strikethrough"]
+        }
+      }
+    }
+  }
+}

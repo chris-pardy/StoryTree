@@ -1,0 +1,115 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.getBud",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the full root-to-bud path that leads to a given bud, with pollen counts. Buds are returned in story order, oldest (root) to newest (bud), and the response is paginated. The cursor is the AT-URI of the next bud to return on the following page; it is omitted when the target bud has been reached.",
+      "parameters": {
+        "type": "params",
+        "required": ["bud"],
+        "properties": {
+          "bud": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the bud at the end of this path."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "cursor": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the bud to start the next page at. Omit on the first request."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["bud", "buds"],
+          "properties": {
+            "bud": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "buds": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#budView"
+              }
+            },
+            "cursor": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "AT-URI of the next bud to fetch. Absent when the target bud has been returned."
+            }
+          }
+        }
+      }
+    },
+    "budView": {
+      "type": "object",
+      "required": [
+        "uri",
+        "cid",
+        "author",
+        "title",
+        "text",
+        "createdAt",
+        "depth",
+        "pollenCount"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        },
+        "author": {
+          "type": "string",
+          "format": "did"
+        },
+        "title": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "ref",
+          "ref": "com.atproto.repo.strongRef"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Depth of this bud in the story tree (0 = root)."
+        },
+        "pollenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime number of pollen grains on this bud (raw count, not the ranking-weighted score)."
+        },
+        "formatting": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "ink.branchline.bud#formatSpan"
+          }
+        }
+      }
+    }
+  }
+}

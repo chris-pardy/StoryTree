@@ -1,0 +1,64 @@
+services:
+  pds:
+    image: ghcr.io/bluesky-social/pds:latest
+    ports:
+      # Host port 2584 to avoid colliding with a cozy-corner PDS on 2583.
+      # The container-side port matches the host port so that the public
+      # service URL the PDS advertises (built from PDS_HOSTNAME:PDS_PORT in
+      # pds.env) resolves the same from inside and outside the container —
+      # this is what OAuth clients follow when resolving a user's DID.
+      - "2584:2584"
+    volumes:
+      - pds-data:/pds
+    env_file:
+      - pds.env
+    restart: unless-stopped
+
+  # Jetstream stands in for the relay in local dev. The indigo relay is
+  # built to crawl the public internet — its host checker uses a
+  # public-IP-only SSRF dialer with no bypass, so it refuses to probe a
+  # PDS at a docker/private/loopback address. Jetstream instead subscribes
+  # directly to a single PDS's com.atproto.sync.subscribeRepos and
+  # re-emits it as a JSON websocket, which is what the branchline AppView
+  # indexer actually needs. In prod the indexer points at bsky.network;
+  # locally it points at ws://localhost:6010/subscribe.
+  #
+  # Jetstream doesn't publish a :latest tag — pin to a SHA tag and refresh
+  # from https://github.com/bluesky-social/jetstream/pkgs/container/jetstream
+  jetstream:
+    image: ghcr.io/bluesky-social/jetstream:sha-ec978dd
+    # Jetstream is published amd64-only; run under emulation on Apple Silicon.
+    platform: linux/amd64
+    ports:
+      - "6010:6008" # ws://localhost:6010/subscribe
+      - "6011:6009" # prometheus metrics
+    volumes:
+      - jetstream-data:/data
+    environment:
+      JETSTREAM_DATA_DIR: /data
+      JETSTREAM_WS_URL: ws://pds:2584/xrpc/com.atproto.sync.subscribeRepos
+      # Local PDS is usually quiet; don't bounce the container when idle.
+      JETSTREAM_LIVENESS_TTL: 24h
+    depends_on:
+      - pds
+    restart: unless-stopped
+
+  # Application database for branchline (Prisma / src/db.ts).
+  # Host port 5434 to avoid colliding with a local postgres on 5432
+  # and cozy-corner's postgres on 5433.
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: branchline
+      POSTGRES_PASSWORD: branchline
+      POSTGRES_DB: branchline
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pds-data:
+  jetstream-data:
+  postgres-data:

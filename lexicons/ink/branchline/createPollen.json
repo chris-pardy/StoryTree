@@ -1,0 +1,59 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.createPollen",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Pollinate a bud — a lightweight mark of appreciation. The caller must be signed in. The AppView writes an ink.branchline.pollen record to the caller's PDS and mirrors it into the local read cache. At most one pollen grain per (author, subject) is honored; retrying a call for the same subject is rejected with DuplicatePollen.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["subjectUri"],
+          "properties": {
+            "subjectUri": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "AT-URI of the ink.branchline.bud record to pollinate."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "format": "cid"
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "Unauthorized",
+          "description": "The caller is not signed in."
+        },
+        {
+          "name": "SubjectNotFound",
+          "description": "The subject bud does not exist in the AppView."
+        },
+        {
+          "name": "SelfPollinate",
+          "description": "The caller is the subject bud's author. Authors cannot pollinate their own buds."
+        },
+        {
+          "name": "DuplicatePollen",
+          "description": "The caller has already pollinated this subject."
+        }
+      ]
+    }
+  }
+}

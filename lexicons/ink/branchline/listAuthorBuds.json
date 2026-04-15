@@ -1,0 +1,77 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.listAuthorBuds",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List buds written by an author, surfacing only the terminal contributions per branch: a bud is included when the author has no descendant bud beneath it. Collapses back-and-forth exchanges so each chain the author participated in appears at most once, represented by their most recent bud in that chain.",
+      "parameters": {
+        "type": "params",
+        "required": ["actor"],
+        "properties": {
+          "actor": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the author whose buds to list."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Opaque pagination token returned by a prior call."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["buds"],
+          "properties": {
+            "buds": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#budView"
+              }
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination token for the next page. Absent when there are no more results."
+            }
+          }
+        }
+      }
+    },
+    "budView": {
+      "type": "object",
+      "required": ["uri", "title", "author", "createdAt", "pollenCount"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "title": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string",
+          "format": "did"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "pollenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime raw pollen count on this bud."
+        }
+      }
+    }
+  }
+}

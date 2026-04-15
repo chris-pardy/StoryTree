@@ -1,0 +1,105 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.listBlooms",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List active blooms: buds past the 24h growing window that are either still inside the 48h follow window or have never gained a child. Supports 'recent' (newest createdAt first) and 'pollen' (decay-weighted pollen score across the bloom and its ancestors).",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Opaque pagination token returned by a prior call."
+          },
+          "sort": {
+            "type": "string",
+            "knownValues": ["recent", "pollen"],
+            "default": "recent",
+            "description": "Sort order. 'recent' orders blooms by bud createdAt, newest first. 'pollen' ranks blooms by a pollen-weighted score: each grain of pollen on the bloom or any ancestor contributes with independent time and depth half-life decay, so both fresh tip-of-branch interest and steady deep-lineage accumulation rank well."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["blooms"],
+          "properties": {
+            "blooms": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#bloomView"
+              }
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination token for the next page. Absent when there are no more results."
+            }
+          }
+        }
+      }
+    },
+    "bloomView": {
+      "type": "object",
+      "required": [
+        "bloom",
+        "root",
+        "createdAt",
+        "intermediateCount",
+        "pollenCount"
+      ],
+      "properties": {
+        "bloom": {
+          "type": "ref",
+          "ref": "#budRef",
+          "description": "The bud at the leaf of this path — the bloom itself."
+        },
+        "root": {
+          "type": "ref",
+          "ref": "#budRef",
+          "description": "The root bud (story seed) this bloom descends from."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "createdAt of the bloom bud."
+        },
+        "intermediateCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of distinct intermediate contributor DIDs on the root-to-bloom path, excluding the root author and the bloom author."
+        },
+        "pollenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime raw pollen count on the bloom bud. Not the ranking-weighted score."
+        }
+      }
+    },
+    "budRef": {
+      "type": "object",
+      "required": ["uri", "title", "author"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "title": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string",
+          "format": "did"
+        }
+      }
+    }
+  }
+}

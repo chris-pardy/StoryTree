@@ -1,0 +1,292 @@
+/* ──────────────────────────────────────────────────────────────
+   Continue-this-story prompt and the reading-column editor
+   ────────────────────────────────────────────────────────────── */
+
+.continue-prompt-wrap {
+	margin-top: 3.5rem;
+	display: flex;
+	justify-content: center;
+}
+
+.continue-prompt {
+	padding: 0.55rem 0.75rem;
+	border: 0;
+	background: transparent;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-weight: 400;
+	font-size: 1.05rem;
+	letter-spacing: -0.002em;
+	color: color-mix(in oklab, var(--sea-ink-soft) 68%, transparent);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.continue-prompt:hover,
+.continue-prompt:focus-visible {
+	color: var(--lagoon-deep);
+	outline: none;
+}
+
+.continue-editor {
+	margin-top: 3.2rem;
+}
+
+.continue-title-input {
+	display: block;
+	width: 100%;
+	margin: 0 0 1.25rem;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-weight: 500;
+	font-size: 1.5rem;
+	line-height: 1.22;
+	letter-spacing: -0.016em;
+	color: var(--sea-ink);
+	caret-color: var(--lagoon-deep);
+}
+
+.continue-title-input::placeholder {
+	color: color-mix(in oklab, var(--sea-ink-soft) 42%, transparent);
+	font-style: italic;
+}
+
+.continue-submit-row {
+	margin-top: 1.75rem;
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	font-family: var(--font-sans);
+	font-size: 0.64rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+.continue-hint {
+	color: color-mix(in oklab, var(--sea-ink-soft) 42%, transparent);
+}
+
+.continue-submit {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	color: color-mix(in oklab, var(--sea-ink-soft) 78%, transparent);
+	cursor: pointer;
+}
+
+.continue-submit:hover,
+.continue-submit:focus-visible {
+	color: var(--lagoon-deep);
+	outline: none;
+}
+
+.continue-submit:disabled {
+	cursor: progress;
+	opacity: 0.7;
+}
+
+.continue-submit-spinner {
+	display: inline-block;
+	margin-right: 0.35rem;
+	vertical-align: -2px;
+	animation: continue-submit-spin 0.85s linear infinite;
+}
+
+@keyframes continue-submit-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.continue-editor .ProseMirror {
+	margin: 0;
+	min-height: 9rem;
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 400;
+	font-size: 1.2rem;
+	line-height: 1.78;
+	letter-spacing: -0.003em;
+	color: var(--sea-ink);
+	outline: none;
+	caret-color: var(--lagoon-deep);
+}
+
+.continue-editor .ProseMirror > * + * {
+	margin-top: 1.1em;
+}
+
+.continue-editor .ProseMirror p {
+	margin: 0;
+	text-wrap: pretty;
+	hanging-punctuation: first last;
+}
+
+.continue-editor .ProseMirror strong {
+	font-weight: 700;
+	color: var(--sea-ink);
+}
+
+.continue-editor .ProseMirror em {
+	font-style: italic;
+}
+
+.continue-editor .ProseMirror blockquote {
+	margin: 0;
+	padding-left: 1.4em;
+	border-left: 1px solid
+		color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+	color: var(--sea-ink-soft);
+	font-style: italic;
+}
+
+.continue-editor .ProseMirror blockquote p + p {
+	margin-top: 0.8em;
+}
+
+.continue-editor .ProseMirror p.is-editor-empty:first-child::before {
+	content: attr(data-placeholder);
+	float: left;
+	height: 0;
+	pointer-events: none;
+	font-style: italic;
+	color: color-mix(in oklab, var(--sea-ink-soft) 45%, transparent);
+}
+
+.continue-editor .ProseMirror ::selection {
+	background: color-mix(in oklab, var(--lagoon) 30%, transparent);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Bluesky crosspost nudge — shown on the just-published bud page
+   ────────────────────────────────────────────────────────────── */
+
+.bsky-prompt {
+	margin-top: 3rem;
+	padding: 0.85rem 0;
+	border-top: 1px solid
+		color-mix(in oklab, var(--sea-ink-soft) 14%, transparent);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	font-family: var(--font-sans);
+	font-size: 0.64rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: color-mix(in oklab, var(--sea-ink-soft) 62%, transparent);
+	animation: bsky-prompt-rise 420ms ease both;
+}
+
+.bsky-prompt[data-state="composing"] {
+	display: block;
+}
+
+.bsky-prompt[data-state="posted"] {
+	justify-content: center;
+}
+
+@keyframes bsky-prompt-rise {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.bsky-prompt-note {
+	font-style: normal;
+}
+
+.bsky-prompt-label {
+	display: block;
+	margin-bottom: 0.6rem;
+	color: color-mix(in oklab, var(--sea-ink-soft) 72%, transparent);
+}
+
+.bsky-prompt-textarea {
+	width: 100%;
+	resize: vertical;
+	padding: 0.7rem 0.85rem;
+	border: 1px solid color-mix(in oklab, var(--sea-ink-soft) 22%, transparent);
+	border-radius: 0.4rem;
+	background: color-mix(in oklab, var(--lagoon-deep) 3%, transparent);
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-size: 1rem;
+	line-height: 1.45;
+	letter-spacing: -0.003em;
+	color: var(--sea-ink);
+	text-transform: none;
+	outline: none;
+}
+
+.bsky-prompt-textarea:focus {
+	border-color: color-mix(in oklab, var(--lagoon-deep) 55%, transparent);
+}
+
+.bsky-prompt-textarea:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.bsky-prompt-row {
+	margin-top: 0.8rem;
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.bsky-prompt-hint {
+	color: color-mix(in oklab, var(--sea-ink-soft) 48%, transparent);
+	font-size: 0.6rem;
+}
+
+.bsky-prompt-actions {
+	display: flex;
+	align-items: baseline;
+	gap: 1rem;
+}
+
+.bsky-prompt-link,
+.bsky-prompt-dismiss {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	color: color-mix(in oklab, var(--sea-ink-soft) 78%, transparent);
+	cursor: pointer;
+}
+
+.bsky-prompt-link:hover,
+.bsky-prompt-link:focus-visible {
+	color: var(--lagoon-deep);
+	outline: none;
+}
+
+.bsky-prompt-dismiss:hover,
+.bsky-prompt-dismiss:focus-visible {
+	color: var(--sea-ink);
+	outline: none;
+}
+
+.bsky-prompt-link:disabled,
+.bsky-prompt-dismiss:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

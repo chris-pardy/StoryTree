@@ -1,0 +1,144 @@
+/* ──────────────────────────────────────────────────────────────
+   Site chrome — a whispered masthead and colophon
+   ────────────────────────────────────────────────────────────── */
+
+.site-masthead {
+	padding: 1.9rem 1.75rem 1.35rem;
+	border-bottom: 1px solid color-mix(in oklab, var(--line) 45%, transparent);
+}
+
+.site-masthead-inner {
+	width: min(52rem, calc(100% - 2rem));
+	margin-inline: auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.site-wordmark {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-weight: 500;
+	font-size: 1.2rem;
+	letter-spacing: -0.012em;
+	color: var(--sea-ink);
+	text-decoration: none;
+}
+
+.logo-mark {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	background-color: currentColor;
+	-webkit-mask: url("/brand/mark.png") center / contain no-repeat;
+	mask: url("/brand/mark.png") center / contain no-repeat;
+	flex: none;
+}
+
+.site-wordmark .logo-mark {
+	width: 1.5em;
+	height: 1.5em;
+	color: color-mix(in oklab, var(--sea-ink) 85%, transparent);
+	transform: translateY(0.22em);
+}
+
+.site-wordmark:hover .logo-mark {
+	color: var(--lagoon-deep);
+}
+
+.site-wordmark:hover {
+	color: var(--lagoon-deep);
+}
+
+.site-masthead-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.site-auth-button {
+	display: inline-flex;
+	align-items: center;
+	height: 2.1rem;
+	padding-inline: 0.85rem;
+	border: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	font: inherit;
+	font-size: 0.82rem;
+	letter-spacing: 0.01em;
+	cursor: pointer;
+	text-decoration: none;
+	transition:
+		color 160ms ease,
+		border-color 160ms ease;
+}
+
+.site-auth-button:hover {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+}
+
+.theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.1rem;
+	height: 2.1rem;
+	padding: 0;
+	border: 1px solid color-mix(in oklab, var(--line) 50%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	cursor: pointer;
+}
+
+.theme-toggle:hover {
+	color: var(--sea-ink);
+	border-color: color-mix(in oklab, var(--line) 90%, transparent);
+	background: color-mix(in oklab, var(--sand) 32%, transparent);
+}
+
+.theme-toggle:focus-visible {
+	outline: none;
+	border-color: color-mix(in oklab, var(--lagoon-deep) 55%, transparent);
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--lagoon-deep) 18%, transparent);
+}
+
+.site-colophon {
+	margin-top: 6rem;
+	padding: 2.25rem 1.75rem 3rem;
+	border-top: 1px solid color-mix(in oklab, var(--line) 40%, transparent);
+}
+
+.site-colophon-inner {
+	width: min(52rem, calc(100% - 2rem));
+	margin-inline: auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1.25rem;
+	font-family: var(--font-sans);
+	font-size: 0.63rem;
+	font-weight: 500;
+	letter-spacing: 0.24em;
+	text-transform: uppercase;
+	color: color-mix(in oklab, var(--sea-ink-soft) 62%, transparent);
+}
+
+.site-colophon-inner p {
+	margin: 0;
+}
+
+.site-colophon-dot {
+	display: inline-block;
+	width: 3px;
+	height: 3px;
+	border-radius: 999px;
+	background: color-mix(in oklab, var(--lagoon-deep) 50%, transparent);
+}

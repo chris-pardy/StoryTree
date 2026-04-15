@@ -1,0 +1,42 @@
+# Managed Postgres (Basic plan, shared-2x / 1GB, ~$38/mo + $0.28/GB storage):
+#   fly mpg create --name branchline-db --plan basic --region iad
+#   fly mpg attach branchline-db -a branchline
+
+app = "branchline"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "pnpm prisma migrate deploy"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  # Opts every machine in to the in-process subscriber. boot.ts still gates on
+  # FLY_PROCESS_GROUP so only the "indexer" machine actually starts it — the
+  # "web" machines are on the allowlist-by-omission.
+  INDEXER_ENABLED = "true"
+
+[processes]
+  web = "node server.js"
+  indexer = "node server.js"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["web"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

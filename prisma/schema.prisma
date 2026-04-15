@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Bud {
+  uri        String   @id
+  cid        String
+  authorDid  String
+  rootUri    String
+  parentUri  String?
+  parentCid  String?
+  depth      Int
+  title      String
+  text       String
+  formatting Json?
+  // Ordered root-to-self path of AT-URIs. Always length == depth + 1,
+  // with pathUris[0] == rootUri and pathUris[depth] == uri.
+  pathUris   String[]
+  createdAt  DateTime
+  indexedAt  DateTime @default(now())
+
+  parent   Bud?  @relation("BudChildren", fields: [parentUri], references: [uri])
+  children Bud[] @relation("BudChildren")
+
+  pollen Pollen[]
+
+  @@index([rootUri])
+  @@index([parentUri])
+  @@index([authorDid])
+  @@index([createdAt])
+}
+
+model Pollen {
+  uri        String   @id
+  authorDid  String
+  subjectUri String
+  subjectCid String
+  createdAt  DateTime
+  indexedAt  DateTime @default(now())
+
+  subject Bud @relation(fields: [subjectUri], references: [uri], onDelete: Cascade)
+
+  @@unique([authorDid, subjectUri])
+  @@index([subjectUri])
+  @@index([authorDid])
+}
+
+// atproto OAuth client storage. Both stores are keyed by string and hold an
+// opaque JSON blob that the @atproto/oauth-client-node library serializes for
+// us; we never read inside it.
+model AuthSession {
+  key     String @id
+  session String
+}
+
+model AuthState {
+  key   String @id
+  state String
+}
+
+// Browser cookie -> atproto did. The cookie id is opaque random bytes; the
+// did is the lookup key into AuthSession.
+model UserSession {
+  id        String   @id
+  did       String
+  createdAt DateTime @default(now())
+
+  @@index([did])
+}
+
+// Single-row cursor persisted by src/server/indexer/jetstream.ts so that
+// indexer restarts resume from the last processed jetstream time_us instead
+// of dropping everything that arrived while we were disconnected.
+model IndexerCursor {
+  id     String @id
+  timeUs BigInt
+}
+
+// did -> handle cache. Filled by src/server/identity/resolve.ts.
+// `verified=true` means the DID-doc handle was confirmed by resolving the
+// handle back to the same DID. `verified=false` is a negative entry: we
+// cache `handle = did` so callers always have something to render and we
+// don't refetch on every request, with a shorter effective TTL applied at
+// the call site.
+model HandleCache {
+  did         String   @id
+  handle      String
+  // Bluesky-profile displayName sourced from `app.bsky.actor.profile`. Null
+  // when the author has no profile record or the fetch failed; the UI then
+  // falls back to rendering just `@handle`.
+  displayName String?
+  verified    Boolean
+  fetchedAt   DateTime @default(now())
+}
