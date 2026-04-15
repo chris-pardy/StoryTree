@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.seedGrant",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An invitation — a capability — to start a new story on branchline. Lives in the repo of the current holder: the trusted grantor for a root grant, or the previous holder for a pass. Root grants have no `previous`; they are authoritative only when written to a repo whose DID is configured as a trusted grantor in the AppView. Passes carry `previous` as a strong ref to the predecessor grant and must be written to a repo owned by that predecessor's `recipient`. A grant is single-use: it may be spent exactly once by either (a) being gifted onward — another seedGrant referencing this one as `previous` — or (b) being redeemed — an ink.branchline.bud whose `grant` strong-refs this one. The AppView enforces single-use via a unique constraint on the committed grant uri at the moment a chain is redeemed into a bud. Until that commitment, grants are revocable: deleting a pass (or the root) from its holding repo invalidates any descendants that have not yet been committed into a bud, which is the mechanism holders use to change their minds about who they gifted a seed to.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["recipient", "createdAt"],
+        "properties": {
+          "previous": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef",
+            "description": "Strong ref to the predecessor grant this one was passed from. Absent on root grants minted by a trusted grantor. When present, the record owner's DID must equal the predecessor's `recipient` — enforced by the AppView's chain validator."
+          },
+          "recipient": {
+            "type": "string",
+            "format": "did",
+            "description": "DID authorized to spend this grant — either by planting it (publishing an ink.branchline.bud whose `grant` references this record) or by gifting it onward (writing a new ink.branchline.seedGrant whose `previous` references this record) to that DID's own PDS."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "note": {
+            "type": "string",
+            "maxGraphemes": 280,
+            "maxLength": 2800,
+            "description": "Optional prose from the grantor to the recipient — a dedication, a prompt, the reason the seed was gifted."
+          }
+        }
+      }
+    }
+  }
+}
