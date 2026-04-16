@@ -66,6 +66,7 @@ type PathRow = {
 	createdAt: Date;
 	position: number;
 	pollenCount: number;
+	childCount: number;
 };
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -103,6 +104,7 @@ function rowToStory(
 		timestamp: row.createdAt.toISOString(),
 		pollen: row.pollenCount,
 		body: renderBudBody(row.text, coerceFormatting(row.formatting)),
+		childCount: row.childCount,
 	};
 }
 
@@ -176,6 +178,7 @@ export const fetchLeaf = createServerFn({ method: "GET" })
 					createdAt: row.createdAt,
 					position: 0,
 					pollenCount: row.pollenCount,
+					childCount: 0,
 				},
 				handles,
 			),
@@ -218,11 +221,82 @@ export const fetchBudPath = createServerFn({ method: "GET" })
         COALESCE(
           (SELECT COUNT(*)::int FROM "Pollen" p WHERE p."subjectUri" = b.uri),
           0
-        ) AS "pollenCount"
+        ) AS "pollenCount",
+        COALESCE(
+          (SELECT COUNT(*)::int FROM "Bud" c WHERE c."parentUri" = b.uri),
+          0
+        ) AS "childCount"
       FROM target, unnest(target.slice) WITH ORDINALITY AS u(path_uri, ord)
       INNER JOIN "Bud" b ON b.uri = u.path_uri
       ORDER BY u.ord
     `);
 		const handles = await resolveHandles(rows.map((r) => r.authorDid));
 		return rows.map((row) => rowToStory(row, handles));
+	});
+
+export type BranchChild = {
+	uri: string;
+	title: string;
+	author: string;
+	authorHandle?: string;
+	authorDisplayName?: string;
+	createdAt: string;
+	pollenCount: number;
+	childCount: number;
+	textPreview: string;
+};
+
+type ChildRow = {
+	uri: string;
+	title: string | null;
+	authorDid: string;
+	createdAt: Date;
+	pollenCount: number;
+	childCount: number;
+	textPreview: string;
+};
+
+/**
+ * Fetch the direct children of a bud. Used by the branch exploration UI
+ * to show which buds sprouted from a given point in the story.
+ */
+export const fetchBudChildren = createServerFn({ method: "GET" })
+	.inputValidator((args: { parentUri: string; limit?: number }) => args)
+	.handler(async ({ data }): Promise<Array<BranchChild>> => {
+		const { parentUri, limit = 20 } = data;
+		const rows = await prisma.$queryRaw<Array<ChildRow>>(Prisma.sql`
+      SELECT
+        b.uri,
+        b.title,
+        b."authorDid",
+        b."createdAt",
+        COALESCE(
+          (SELECT COUNT(*)::int FROM "Pollen" p WHERE p."subjectUri" = b.uri),
+          0
+        ) AS "pollenCount",
+        COALESCE(
+          (SELECT COUNT(*)::int FROM "Bud" c WHERE c."parentUri" = b.uri),
+          0
+        ) AS "childCount",
+        LEFT(b.text, 240) AS "textPreview"
+      FROM "Bud" b
+      WHERE b."parentUri" = ${parentUri}
+      ORDER BY b."createdAt" ASC
+      LIMIT ${limit}
+    `);
+		const handles = await resolveHandles(rows.map((r) => r.authorDid));
+		return rows.map((row) => {
+			const actor = handles.get(row.authorDid);
+			return {
+				uri: row.uri,
+				title: row.title || "Untitled",
+				author: row.authorDid,
+				authorHandle: actor?.handle ?? undefined,
+				authorDisplayName: actor?.displayName ?? undefined,
+				createdAt: row.createdAt.toISOString(),
+				pollenCount: row.pollenCount,
+				childCount: row.childCount,
+				textPreview: row.textPreview,
+			};
+		});
 	});

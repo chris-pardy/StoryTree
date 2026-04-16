@@ -11,6 +11,8 @@ export type Story = {
 	pollen: number;
 	body: string;
 	fresh?: boolean;
+	/** Number of direct child buds that branched from this bud. */
+	childCount?: number;
 };
 
 export type DraftStory = { title: string; body: string };
