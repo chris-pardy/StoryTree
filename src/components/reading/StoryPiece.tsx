@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { GitBranch, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { AuthorLink } from "#/components/AuthorLink";
 import { IfLoggedIn, IfNotViewer } from "#/components/auth/gates";
@@ -12,7 +12,17 @@ const dateFmt = new Intl.DateTimeFormat("en-US", {
 	year: "numeric",
 });
 
-export function StoryPiece({ story, index }: { story: Story; index: number }) {
+export function StoryPiece({
+	story,
+	index,
+	onExplore,
+	isExploreTarget,
+}: {
+	story: Story;
+	index: number;
+	onExplore?: (storyId: string) => void;
+	isExploreTarget?: boolean;
+}) {
 	const [pollinated, setPollinated] = useState(false);
 	const [count, setCount] = useState(story.pollen);
 	const [saving, setSaving] = useState(false);
@@ -56,8 +66,15 @@ export function StoryPiece({ story, index }: { story: Story; index: number }) {
 
 	const anchorId = anchorForBudUri(story.id) ?? undefined;
 
+	const childCount = story.childCount ?? 0;
+	const showBranchIndicator = childCount > 0 && onExplore;
+
 	return (
-		<article id={anchorId} className="story rise-in" style={{ animationDelay }}>
+		<article
+			id={anchorId}
+			className={`story rise-in${isExploreTarget ? " is-explore-target" : ""}`}
+			style={{ animationDelay }}
+		>
 			<div
 				className="story-prose"
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: story.body is sanitized HTML produced by render-bud
@@ -81,23 +98,37 @@ export function StoryPiece({ story, index }: { story: Story; index: number }) {
 						{dateFmt.format(new Date(story.timestamp))}
 					</time>
 				</div>
-				<IfLoggedIn>
-					<IfNotViewer did={story.author}>
+				<div className="byline-actions">
+					{showBranchIndicator && (
 						<button
 							type="button"
-							onClick={() => void toggle()}
-							aria-pressed={pollinated}
-							aria-label={buttonLabel}
-							title={buttonLabel}
-							disabled={saving || pollinated}
-							data-errored={errorMessage ? true : undefined}
-							className={pollinated ? "pollen is-pollinated" : "pollen"}
+							onClick={() => onExplore(story.id)}
+							aria-label={`Explore ${childCount} ${childCount === 1 ? "branch" : "branches"}`}
+							title={`Explore ${childCount} ${childCount === 1 ? "branch" : "branches"}`}
+							className={`branch-indicator${isExploreTarget ? " is-active" : ""}`}
 						>
-							<Sparkles size={14} strokeWidth={1.6} aria-hidden="true" />
-							<span className="pollen-count">{count}</span>
+							<GitBranch size={13} strokeWidth={1.8} aria-hidden="true" />
+							<span className="branch-count">{childCount}</span>
 						</button>
-					</IfNotViewer>
-				</IfLoggedIn>
+					)}
+					<IfLoggedIn>
+						<IfNotViewer did={story.author}>
+							<button
+								type="button"
+								onClick={() => void toggle()}
+								aria-pressed={pollinated}
+								aria-label={buttonLabel}
+								title={buttonLabel}
+								disabled={saving || pollinated}
+								data-errored={errorMessage ? true : undefined}
+								className={pollinated ? "pollen is-pollinated" : "pollen"}
+							>
+								<Sparkles size={14} strokeWidth={1.6} aria-hidden="true" />
+								<span className="pollen-count">{count}</span>
+							</button>
+						</IfNotViewer>
+					</IfLoggedIn>
+				</div>
 			</footer>
 		</article>
 	);

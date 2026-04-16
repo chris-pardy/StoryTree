@@ -1,7 +1,8 @@
-import { type ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { AuthorLink } from "#/components/AuthorLink";
 import { useViewerDid } from "#/components/auth/gates";
+import { BranchPanel } from "./BranchPanel";
 import { BskyCrosspostPrompt } from "./BskyCrosspostPrompt";
 import { anchorForBudUri } from "./bud-loader";
 import { ContinueStory } from "./ContinueStory";
@@ -17,6 +18,11 @@ export function ReadingColumn({
 }) {
 	const [stories, setStories] = useState<Array<Story>>(initialStories);
 	const viewerDid = useViewerDid();
+
+	// Branch exploration: when set, the reading list is truncated up to (and
+	// including) this bud, and a BranchPanel is shown below it with the
+	// children.  `null` means normal reading mode.
+	const [exploreTargetId, setExploreTargetId] = useState<string | null>(null);
 
 	// Optimistic publish: append the new story locally, push the canonical
 	// leaf URL into the history stack (no route reload — that would re-run
@@ -62,13 +68,42 @@ export function ReadingColumn({
 		]);
 	}, []);
 
-	const firstStory = stories[0];
-	const lastStory = stories[stories.length - 1];
+	const handleExplore = useCallback(
+		(storyId: string) => {
+			// Toggle: clicking the same bud again exits exploration mode.
+			setExploreTargetId((prev) => (prev === storyId ? null : storyId));
+		},
+		[],
+	);
+
+	const handleCloseExplore = useCallback(() => {
+		setExploreTargetId(null);
+	}, []);
+
+	// When exploring, slice the stories to show only up to (and including)
+	// the explore target.  The rest are hidden behind the branch panel.
+	const exploreIndex = exploreTargetId
+		? stories.findIndex((s) => s.id === exploreTargetId)
+		: -1;
+	const isExploring = exploreIndex >= 0;
+	const visibleStories = isExploring
+		? stories.slice(0, exploreIndex + 1)
+		: stories;
+
+	// Track all story URIs in the full path so we can highlight which
+	// branch card leads back to the current reading path.
+	const allPathUris = useMemo(
+		() => new Set(stories.map((s) => s.id)),
+		[stories],
+	);
+
+	const firstStory = visibleStories[0];
+	const lastStory = visibleStories[visibleStories.length - 1];
 	const firstTitle = firstStory?.title;
 	const lastTitle = lastStory?.title;
 	const showPair = Boolean(firstTitle && lastTitle) && firstTitle !== lastTitle;
 
-	const uniqueAuthorCount = new Set(stories.map((s) => s.author)).size;
+	const uniqueAuthorCount = new Set(visibleStories.map((s) => s.author)).size;
 	const othersCount = Math.max(0, uniqueAuthorCount - 2);
 
 	// Static condition: if the viewer authored the leaf, the trailing slot
@@ -128,7 +163,8 @@ export function ReadingColumn({
 		<main className="reading-column px-6 pb-28 pt-16 sm:pt-24">
 			<header className="reading-masthead rise-in">
 				<p className="masthead-kicker">
-					{stories.length} {stories.length === 1 ? "reading" : "readings"}
+					{visibleStories.length} {visibleStories.length === 1 ? "reading" : "readings"}
+					{isExploring && " (exploring branches)"}
 				</p>
 				<h1 className="masthead-title">
 					{showPair ? (
@@ -145,29 +181,45 @@ export function ReadingColumn({
 			</header>
 
 			<ol className="reading-list">
-				{stories.map((story, i) => (
+				{visibleStories.map((story, i) => (
 					<li key={story.id}>
-						<StoryPiece story={story} index={i} />
+						<StoryPiece
+							story={story}
+							index={i}
+							onExplore={handleExplore}
+							isExploreTarget={story.id === exploreTargetId}
+						/>
 					</li>
 				))}
 			</ol>
 
-			{viewerOwnsLeaf && lastStory ? (
-				<BskyCrosspostPrompt
-					key={lastStory.id}
-					budUri={lastStory.id}
-					budTitle={lastStory.title}
+			{isExploring && exploreTargetId ? (
+				<BranchPanel
+					key={exploreTargetId}
+					parentUri={exploreTargetId}
+					currentPathUris={allPathUris}
+					onClose={handleCloseExplore}
 				/>
 			) : (
-				<ContinueStory
-					onAdd={addStory}
-					onPublished={handlePublished}
-					parentUri={lastStory?.id}
-					parentAuthor={lastStory?.author}
-				/>
-			)}
+				<>
+					{viewerOwnsLeaf && lastStory ? (
+						<BskyCrosspostPrompt
+							key={lastStory.id}
+							budUri={lastStory.id}
+							budTitle={lastStory.title}
+						/>
+					) : (
+						<ContinueStory
+							onAdd={addStory}
+							onPublished={handlePublished}
+							parentUri={lastStory?.id}
+							parentAuthor={lastStory?.author}
+						/>
+					)}
 
-			{trailing}
+					{trailing}
+				</>
+			)}
 		</main>
 	);
 }
