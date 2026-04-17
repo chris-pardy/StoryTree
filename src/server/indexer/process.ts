@@ -1,12 +1,17 @@
 import { Prisma, type PrismaClient } from "../../generated/prisma/client.ts";
-import { budCreatePayload } from "./payload.ts";
+import { budCreatePayload, seedCreatePayload } from "./payload.ts";
 import {
 	type BudRecord,
+	type ParentLookup,
 	type PollenRecord,
+	type SeedRecord,
 	validateBudCreate,
 	validateBudDelete,
 	validateBudUpdate,
 	validatePollenCreate,
+	validateSeedCreate,
+	validateSeedDelete,
+	validateSeedUpdate,
 } from "./validate.ts";
 
 type CommitBase = {
@@ -15,7 +20,7 @@ type CommitBase = {
 	kind: "commit";
 };
 
-type AnyRecord = (BudRecord | PollenRecord) & { $type?: string };
+type AnyRecord = (BudRecord | PollenRecord | SeedRecord) & { $type?: string };
 
 export type JetstreamCommitCreate = CommitBase & {
 	commit: {
@@ -50,9 +55,125 @@ export type JetstreamCommitDelete = CommitBase & {
 
 export type ProcessDeps = {
 	prisma: PrismaClient;
+	// Allow-list gate for creating grantor-less (root) seeds. In production
+	// this is the single DID for the branchline.ink repo; anyone else must
+	// chain from an existing grant.
 	isAllowedSeedAuthor: (did: string) => boolean;
 	now: () => Date;
 };
+
+export type ResolvedBudParent = {
+	kind: "bud";
+	uri: string;
+	cid: string;
+	authorDid: string;
+	bloomsAt: Date;
+	rootUri: string;
+	depth: number;
+	pathUris: Array<string>;
+	seedUri: string;
+	seedCid: string;
+};
+
+export type ResolvedSeedParent = {
+	kind: "seed";
+	uri: string;
+	cid: string;
+	granteeDid: string;
+	expiresAt: Date | null;
+	chainValid: boolean;
+	alreadyPlanted: boolean;
+};
+
+export type ResolvedParent = ResolvedBudParent | ResolvedSeedParent;
+
+export function resolvedParentToLookup(parent: ResolvedParent): ParentLookup {
+	if (parent.kind === "bud") {
+		return {
+			kind: "bud",
+			uri: parent.uri,
+			cid: parent.cid,
+			authorDid: parent.authorDid,
+			bloomsAt: parent.bloomsAt,
+		};
+	}
+	return {
+		kind: "seed",
+		uri: parent.uri,
+		cid: parent.cid,
+		granteeDid: parent.granteeDid,
+		expiresAt: parent.expiresAt,
+		chainValid: parent.chainValid,
+		alreadyPlanted: parent.alreadyPlanted,
+	};
+}
+
+export async function resolveBudParent(
+	prisma: PrismaClient,
+	parentUri: string,
+	now: Date,
+	selfUri: string = "",
+): Promise<ResolvedParent | null> {
+	const budRow = await prisma.bud.findUnique({ where: { uri: parentUri } });
+	if (budRow) {
+		return {
+			kind: "bud",
+			uri: budRow.uri,
+			cid: budRow.cid,
+			authorDid: budRow.authorDid,
+			bloomsAt: budRow.bloomsAt,
+			rootUri: budRow.rootUri,
+			depth: budRow.depth,
+			pathUris: budRow.pathUris,
+			seedUri: budRow.seedUri,
+			seedCid: budRow.seedCid,
+		};
+	}
+
+	const seedRow = await prisma.seed.findUnique({ where: { uri: parentUri } });
+	if (!seedRow) return null;
+
+	const chain = await prisma.seed.findMany({
+		where: { uri: { in: seedRow.chainUris } },
+	});
+	let chainValid = chain.length === seedRow.chainUris.length;
+	if (chainValid) {
+		const byUri = new Map(chain.map((s) => [s.uri, s]));
+		for (let i = 0; i < seedRow.chainUris.length; i++) {
+			const s = byUri.get(seedRow.chainUris[i]);
+			if (!s) {
+				chainValid = false;
+				break;
+			}
+			if (s.expiresAt && s.expiresAt.getTime() <= now.getTime()) {
+				chainValid = false;
+				break;
+			}
+			if (i > 0) {
+				const parent = byUri.get(seedRow.chainUris[i - 1]);
+				if (!parent || parent.granteeDid !== s.authorDid) {
+					chainValid = false;
+					break;
+				}
+			}
+		}
+	}
+
+	const plantedExists = await prisma.bud.findFirst({
+		where: { seedUri: seedRow.uri, parentUri: null, NOT: { uri: selfUri } },
+		select: { uri: true },
+	});
+
+	return {
+		kind: "seed",
+		uri: seedRow.uri,
+		cid: seedRow.cid,
+		granteeDid: seedRow.granteeDid,
+		expiresAt: seedRow.expiresAt,
+		chainValid,
+		alreadyPlanted: plantedExists !== null,
+	};
+}
 
 export type ProcessResult = { accepted: boolean; reason?: string };
 
@@ -69,8 +190,22 @@ async function loadExisting(prisma: PrismaClient, uri: string) {
 	return {
 		uri: row.uri,
 		authorDid: row.authorDid,
-		createdAt: row.createdAt,
+		bloomsAt: row.bloomsAt,
 		childCount: row._count.children,
+	};
+}
+
+async function loadExistingSeed(prisma: PrismaClient, uri: string) {
+	const row = await prisma.seed.findUnique({
+		where: { uri },
+		include: { _count: { select: { buds: true } } },
+	});
+	if (!row) return null;
+	return {
+		uri: row.uri,
+		authorDid: row.authorDid,
+		grantorUri: row.grantorUri,
+		hasBud: row._count.buds > 0,
 	};
 }
 
@@ -78,48 +213,41 @@ export async function processBudCreate(
 	event: JetstreamCommitCreate,
 	deps: ProcessDeps,
 ): Promise<ProcessResult> {
-	const { prisma, isAllowedSeedAuthor, now } = deps;
+	const { prisma, now } = deps;
 	const { did, commit } = event;
 	const uri = makeAtUri(did, commit.collection, commit.rkey);
 	const record = commit.record as BudRecord;
 
+	const nowAt = now();
 	const parent = record.parent
-		? await prisma.bud.findUnique({ where: { uri: record.parent.uri } })
+		? await resolveBudParent(prisma, record.parent.uri, nowAt, uri)
+		: null;
+
+	const parentForValidate: ParentLookup | null = parent
+		? resolvedParentToLookup(parent)
 		: null;
 
 	const result = validateBudCreate({
 		record,
 		authorDid: did,
-		parent: parent
-			? {
-					uri: parent.uri,
-					cid: parent.cid,
-					authorDid: parent.authorDid,
-					createdAt: parent.createdAt,
-				}
-			: null,
-		isAllowedRoot: !record.parent && isAllowedSeedAuthor(did),
-		now: now(),
+		parent: parentForValidate,
+		now: nowAt,
 	});
 
 	if (!result.ok) {
 		return { accepted: false, reason: result.reason };
 	}
 
+	// Validation guarantees parent is non-null when ok.
+	if (!parent)
+		throw new Error("bud-create: parent resolved to null after ok validation");
+
 	const data = budCreatePayload({
 		record,
 		uri,
 		cid: commit.cid,
 		authorDid: did,
-		parent: parent
-			? {
-					uri: parent.uri,
-					cid: parent.cid,
-					rootUri: parent.rootUri,
-					depth: parent.depth,
-					pathUris: parent.pathUris,
-				}
-			: null,
+		parent,
 	});
 
 	// Upsert so that a Jetstream replay OR a local write from the PDS-first
@@ -198,6 +326,118 @@ export async function processBudDelete(
 	}
 
 	await prisma.bud.delete({ where: { uri } });
+
+	return { accepted: true };
+}
+
+export async function processSeedCreate(
+	event: JetstreamCommitCreate,
+	deps: ProcessDeps,
+): Promise<ProcessResult> {
+	const { prisma, isAllowedSeedAuthor, now } = deps;
+	const { did, commit } = event;
+	const uri = makeAtUri(did, commit.collection, commit.rkey);
+	const record = commit.record as SeedRecord;
+
+	const grantor = record.grantor
+		? await prisma.seed.findUnique({
+				where: { uri: record.grantor },
+				include: { child: { select: { uri: true } } },
+			})
+		: null;
+
+	const result = validateSeedCreate({
+		record,
+		authorDid: did,
+		grantor: grantor
+			? {
+					uri: grantor.uri,
+					granteeDid: grantor.granteeDid,
+					chainUris: grantor.chainUris,
+					expiresAt: grantor.expiresAt,
+					hasChild: grantor.child !== null && grantor.child.uri !== uri,
+				}
+			: null,
+		isAllowedRoot: !record.grantor && isAllowedSeedAuthor(did),
+		now: now(),
+	});
+
+	if (!result.ok) {
+		return { accepted: false, reason: result.reason };
+	}
+
+	const data = seedCreatePayload({
+		record,
+		uri,
+		cid: commit.cid,
+		authorDid: did,
+		grantor: grantor
+			? { uri: grantor.uri, chainUris: grantor.chainUris }
+			: null,
+	});
+
+	await prisma.seed.upsert({
+		where: { uri },
+		create: data,
+		update: {},
+	});
+
+	return { accepted: true };
+}
+
+export async function processSeedUpdate(
+	event: JetstreamCommitUpdate,
+	deps: ProcessDeps,
+): Promise<ProcessResult> {
+	const { prisma } = deps;
+	const { did, commit } = event;
+	const uri = makeAtUri(did, commit.collection, commit.rkey);
+	const record = commit.record as SeedRecord;
+
+	const existing = await loadExistingSeed(prisma, uri);
+
+	const result = validateSeedUpdate({
+		record,
+		authorDid: did,
+		existing,
+	});
+
+	if (!result.ok) {
+		return { accepted: false, reason: result.reason };
+	}
+
+	await prisma.seed.update({
+		where: { uri },
+		data: {
+			cid: commit.cid,
+			granteeDid: record.grantee,
+			expiresAt: record.expiresAt ? new Date(record.expiresAt) : null,
+		},
+	});
+
+	return { accepted: true };
+}
+
+export async function processSeedDelete(
+	event: JetstreamCommitDelete,
+	deps: ProcessDeps,
+): Promise<ProcessResult> {
+	const { prisma } = deps;
+	const { did, commit } = event;
+	const uri = makeAtUri(did, commit.collection, commit.rkey);
+
+	const existing = await loadExistingSeed(prisma, uri);
+
+	const result = validateSeedDelete({
+		authorDid: did,
+		existing,
+	});
+
+	if (!result.ok) {
+		return { accepted: false, reason: result.reason };
+	}
+
+	await prisma.seed.delete({ where: { uri } });
 
 	return { accepted: true };
 }

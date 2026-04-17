@@ -37,6 +37,16 @@ function warmServerEntryPlugin(): PluginOption {
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
+	// @resvg/resvg-js ships a platform-specific .node binary that Vite's
+	// dependency optimizer can't pre-bundle. Excluding it from optimizeDeps
+	// and marking it external in the SSR build lets Node's require resolver
+	// pick the right native binding at runtime.
+	optimizeDeps: {
+		exclude: ["@resvg/resvg-js"],
+	},
+	ssr: {
+		external: ["@resvg/resvg-js"],
+	},
 	plugins: [
 		devtools(),
 		tailwindcss(),

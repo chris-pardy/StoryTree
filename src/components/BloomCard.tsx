@@ -1,35 +1,11 @@
+import "./BloomCard.css";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Sprout } from "lucide-react";
-import { useState } from "react";
-import { createPollen } from "#/server/pollen/create";
+import { parseBudSplat } from "#/lib/bud-uri";
+import { budQuery } from "#/queries/buds";
 import { AuthorLink } from "./AuthorLink";
-
-export type Bloom = {
-	uri: string;
-	title: string;
-	/** First slice of the bud's body text. Pre-truncated by the server. */
-	textPreview: string;
-	/** Bloom author DID. */
-	author: string;
-	/** Verified handle for display. Undefined when unresolved. */
-	authorHandle?: string;
-	/** Bluesky profile `displayName`, when the author has one. */
-	authorDisplayName?: string;
-	createdAt: string;
-	intermediateCount: number;
-	pollenCount: number;
-	budCount: number;
-	root: {
-		uri: string;
-		title: string;
-		/** Root-bud author DID. */
-		author: string;
-		/** Verified handle for display. Undefined when unresolved. */
-		authorHandle?: string;
-		/** Bluesky profile `displayName`, when the author has one. */
-		authorDisplayName?: string;
-	};
-};
+import { BranchLink } from "./BranchLink";
+import { PollenButton } from "./PollenButton";
 
 function relative(ts: string) {
 	const ms = Date.now() - new Date(ts).getTime();
@@ -40,66 +16,22 @@ function relative(ts: string) {
 	return `${days}d ago`;
 }
 
-function parseShorthand(uri: string) {
-	const m = uri.match(/^at:\/\/([^/]+)\/[^/]+\/([^/]+)$/);
-	if (!m) return null;
-	return { authority: m[1], rkey: m[2] };
-}
+export function BloomCard({ uri, rootUri }: { uri: string; rootUri?: string }) {
+	const { data: bud } = useQuery(budQuery(uri));
+	const { data: root } = useQuery(budQuery(rootUri ?? uri));
 
-export function BloomCard({
-	bloom,
-	loggedIn,
-}: {
-	bloom: Bloom;
-	loggedIn: boolean;
-}) {
-	const parsed = parseShorthand(bloom.uri);
-	const splat = parsed ? `${parsed.authority}/${parsed.rkey}` : "";
-	const authorLabel =
-		bloom.authorDisplayName ?? bloom.authorHandle ?? bloom.author;
+	if (!bud) return null;
 
-	// A bloom that _is_ the root has no "from" half, and the compound author
-	// line collapses to a single name. Otherwise the latest contributor is the
-	// bloom author and the first is the seed author.
-	const isRootItself = bloom.uri === bloom.root.uri;
-	const sameAuthor = bloom.author === bloom.root.author;
-	const others = bloom.intermediateCount;
-
-	const [pollinated, setPollinated] = useState(false);
-	const [count, setCount] = useState(bloom.pollenCount);
-	const [saving, setSaving] = useState(false);
-	const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-	const pollinate = async () => {
-		if (pollinated || saving) return;
-		setSaving(true);
-		setErrorMessage(null);
-		setPollinated(true);
-		setCount((c) => c + 1);
-		try {
-			await createPollen({ data: { subjectUri: bloom.uri } });
-		} catch (e) {
-			const reason = e instanceof Error ? e.message : String(e);
-			// See StoryPiece: a prior-session pollen shows up as DuplicatePollen.
-			// The optimistic UI already reflects the server state, so swallow it.
-			if (reason === "DuplicatePollen") return;
-			setPollinated(false);
-			setCount((c) => c - 1);
-			setErrorMessage(reason);
-		} finally {
-			setSaving(false);
-		}
-	};
-
-	const buttonLabel = errorMessage
-		? `Could not pollinate: ${errorMessage}`
-		: `${pollinated ? "Pollinated" : "Pollinate"} ${authorLabel}'s bloom`;
+	const splat = parseBudSplat(uri);
+	const showRoot = root && rootUri && rootUri !== uri;
+	const sameAuthor = showRoot && root.author.did === bud.author.did;
+	const others = bud.intermediateCount ?? 0;
 
 	return (
 		<article className="bloom-card rise-in">
 			<header className="bloom-card-head">
 				<span className="bloom-card-kicker">
-					Bloom · {relative(bloom.createdAt)}
+					Bloom · {relative(bud.createdAt)}
 				</span>
 			</header>
 
@@ -108,15 +40,21 @@ export function BloomCard({
 					to="/bud/$"
 					params={{ _splat: splat }}
 					className="bloom-card-title-link"
+					reloadDocument={false}
+					resetScroll={false}
+					hashScrollIntoView={false}
+					viewTransition={false}
+					ignoreBlocker={true}
+					preload="viewport"
 				>
-					{isRootItself ? (
-						bloom.title
-					) : (
+					{showRoot ? (
 						<>
-							{bloom.root.title}
+							{root.title}
 							<br />
-							<em>and {bloom.title}</em>
+							<em>and {bud.title}</em>
 						</>
+					) : (
+						bud.title
 					)}
 				</Link>
 			</h2>
@@ -124,18 +62,18 @@ export function BloomCard({
 			<p className="bloom-card-authors">
 				by{" "}
 				<AuthorLink
-					did={bloom.author}
-					handle={bloom.authorHandle}
-					displayName={bloom.authorDisplayName}
+					did={bud.author.did}
+					handle={bud.author.handle}
+					displayName={bud.author.displayName}
 					className="bloom-card-handle"
 				/>
-				{!isRootItself && !sameAuthor && (
+				{showRoot && !sameAuthor && (
 					<>
 						,{" "}
 						<AuthorLink
-							did={bloom.root.author}
-							handle={bloom.root.authorHandle}
-							displayName={bloom.root.authorDisplayName}
+							did={root.author.did}
+							handle={root.author.handle}
+							displayName={root.author.displayName}
 							className="bloom-card-handle"
 						/>
 					</>
@@ -148,41 +86,13 @@ export function BloomCard({
 				)}
 			</p>
 
-			{bloom.textPreview && (
-				<p className="bloom-card-preview">{bloom.textPreview}</p>
+			{bud.text && (
+				<p className="bloom-card-preview">{bud.text.slice(0, 240)}</p>
 			)}
 
 			<footer className="bloom-card-stats">
-				<span className="bloom-card-stat">
-					<Sprout size={13} strokeWidth={1.6} aria-hidden="true" />
-					<span>
-						{bloom.budCount} {bloom.budCount === 1 ? "bud" : "buds"}
-					</span>
-				</span>
-				{loggedIn ? (
-					<button
-						type="button"
-						className="bloom-card-stat bloom-card-stat-action"
-						aria-label={buttonLabel}
-						title={buttonLabel}
-						aria-pressed={pollinated}
-						disabled={saving || pollinated}
-						data-errored={errorMessage ? true : undefined}
-						onClick={() => void pollinate()}
-					>
-						<Sparkles size={13} strokeWidth={1.6} aria-hidden="true" />
-						<span>{count}</span>
-					</button>
-				) : (
-					<Link
-						to="/login"
-						className="bloom-card-stat bloom-card-stat-action"
-						aria-label="Sign in to pollinate this bloom"
-					>
-						<Sparkles size={13} strokeWidth={1.6} aria-hidden="true" />
-						<span>{bloom.pollenCount}</span>
-					</Link>
-				)}
+				<BranchLink bud={bud} />
+				<PollenButton bud={bud} />
 			</footer>
 		</article>
 	);

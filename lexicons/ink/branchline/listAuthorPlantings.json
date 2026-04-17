@@ -1,0 +1,67 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.listAuthorPlantings",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List trees planted by an author. A planting is a root bud (depth 0) authored by `actor`; each entry reports the root AT-URI and the height of the tallest branch descended from it.",
+      "parameters": {
+        "type": "params",
+        "required": ["actor"],
+        "properties": {
+          "actor": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the author whose plantings to list."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Opaque pagination token returned by a prior call."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["plantings"],
+          "properties": {
+            "plantings": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#plantingView"
+              }
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination token for the next page. Absent when there are no more results."
+            }
+          }
+        }
+      }
+    },
+    "plantingView": {
+      "type": "object",
+      "required": ["root", "treeHeight"],
+      "properties": {
+        "root": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "AT-URI of the root bud the author planted."
+        },
+        "treeHeight": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Length of the longest root-to-leaf path in this tree (1 when the root has no children)."
+        }
+      }
+    }
+  }
+}

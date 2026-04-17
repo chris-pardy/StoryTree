@@ -45,10 +45,23 @@ type BudRow = {
   rootUri: string
   parentUri: string | null
   parentCid: string | null
+  seedUri: string
+  seedCid: string
   depth: number
   title: string
   text: string
   pathUris: string[]
+  createdAt: Date
+}
+
+type SeedRow = {
+  uri: string
+  cid: string
+  authorDid: string
+  granteeDid: string
+  grantorUri: string | null
+  chainUris: string[]
+  expiresAt: Date | null
   createdAt: Date
 }
 
@@ -84,7 +97,24 @@ const nextDate = () => {
 }
 
 const buds: BudRow[] = []
+const seeds: SeedRow[] = []
 const pollenGrains: PollenRow[] = []
+
+function makeSeedFor(did: string, now: Date): SeedRow {
+  const uri = `at://${did}/ink.branchline.seed/${rkey()}`
+  const row: SeedRow = {
+    uri,
+    cid: cid(),
+    authorDid: did,
+    granteeDid: did,
+    grantorUri: null,
+    chainUris: [uri],
+    expiresAt: null,
+    createdAt: now,
+  }
+  seeds.push(row)
+  return row
+}
 
 function makeBud(parent: BudRow | null): BudRow {
   const did = pickAuthor()
@@ -93,6 +123,13 @@ function makeBud(parent: BudRow | null): BudRow {
   const depth = parent ? parent.depth + 1 : 0
   const rootUri = parent ? parent.rootUri : uri
   const pathUris = parent ? [...parent.pathUris, uri] : [uri]
+  const createdAt = nextDate()
+  const seed = parent
+    ? { uri: parent.seedUri, cid: parent.seedCid }
+    : (() => {
+        const s = makeSeedFor(did, createdAt)
+        return { uri: s.uri, cid: s.cid }
+      })()
 
   const row: BudRow = {
     uri,
@@ -101,11 +138,13 @@ function makeBud(parent: BudRow | null): BudRow {
     rootUri,
     parentUri: parent?.uri ?? null,
     parentCid: parent?.cid ?? null,
+    seedUri: seed.uri,
+    seedCid: seed.cid,
     depth,
     title: fakeTitle(),
     text: fakeText(),
     pathUris,
-    createdAt: nextDate(),
+    createdAt,
   }
   buds.push(row)
 
@@ -198,6 +237,9 @@ async function insertChunked<T>(
   }
 }
 
+await insertChunked('seeds', seeds, (chunk) =>
+  prisma.seed.createMany({ data: chunk }),
+)
 await insertChunked('buds', buds, (chunk) =>
   prisma.bud.createMany({ data: chunk }),
 )

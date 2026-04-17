@@ -1,0 +1,25 @@
+.theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.1rem;
+	height: 2.1rem;
+	padding: 0;
+	border: 1px solid color-mix(in oklab, var(--line) 50%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	cursor: pointer;
+}
+
+.theme-toggle:hover {
+	color: var(--sea-ink);
+	border-color: color-mix(in oklab, var(--line) 90%, transparent);
+	background: color-mix(in oklab, var(--sand) 32%, transparent);
+}
+
+.theme-toggle:focus-visible {
+	outline: none;
+	border-color: color-mix(in oklab, var(--lagoon-deep) 55%, transparent);
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--lagoon-deep) 18%, transparent);
+}

@@ -1,3 +1,4 @@
+import "./Footer.css";
 import { Link } from "@tanstack/react-router";
 
 export default function Footer() {
@@ -7,12 +8,21 @@ export default function Footer() {
 		<footer className="site-colophon">
 			<div className="site-colophon-inner">
 				<Link to="/">branchline</Link>
-				<span className="site-colophon-dot" aria-hidden="true" />
-				<p>vol. i</p>
-				<span className="site-colophon-dot" aria-hidden="true" />
-				<p>set in fraunces &amp; manrope</p>
-				<span className="site-colophon-dot" aria-hidden="true" />
-				<p>{year}</p>
+				<span
+					className="site-colophon-dot colophon-detail"
+					aria-hidden="true"
+				/>
+				<p className="colophon-detail">vol. i</p>
+				<span
+					className="site-colophon-dot colophon-detail"
+					aria-hidden="true"
+				/>
+				<p className="colophon-detail">set in fraunces &amp; manrope</p>
+				<span
+					className="site-colophon-dot colophon-detail"
+					aria-hidden="true"
+				/>
+				<p className="colophon-detail">{year}</p>
 				<span className="site-colophon-dot" aria-hidden="true" />
 				<Link to="/policy">policy</Link>
 				<span className="site-colophon-dot" aria-hidden="true" />

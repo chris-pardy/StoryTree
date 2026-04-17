@@ -2,15 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
 	type BudRecord,
 	type ExistingBud,
-	GROWING_MS,
+	type ExistingSeed,
+	type GrantorLookup,
 	type ParentLookup,
 	type PollenRecord,
+	type SeedRecord,
 	type SubjectLookup,
 	type ValidateBudCreateArgs,
+	type ValidateSeedCreateArgs,
 	validateBudCreate,
 	validateBudDelete,
 	validateBudUpdate,
 	validatePollenCreate,
+	validateSeedCreate,
+	validateSeedDelete,
+	validateSeedUpdate,
 } from "./validate.ts";
 import { BUD_WORD_LIMIT } from "./wordCount.ts";
 
@@ -19,10 +25,11 @@ const AUTHOR = "did:plc:author";
 const OTHER = "did:plc:other";
 
 const parentRow: ParentLookup = {
+	kind: "bud",
 	uri: "at://did:plc:other/ink.branchline.bud/parent1",
 	cid: "bafyparent",
 	authorDid: OTHER,
-	createdAt: new Date(NOW.getTime() - GROWING_MS - 1000),
+	bloomsAt: new Date(NOW.getTime() - 1000),
 };
 
 const childRecord: BudRecord = {
@@ -36,7 +43,32 @@ const baseArgs: ValidateBudCreateArgs = {
 	record: childRecord,
 	authorDid: AUTHOR,
 	parent: parentRow,
-	isAllowedRoot: false,
+	now: NOW,
+};
+
+const SEED_PARENT_URI = "at://did:plc:other/ink.branchline.seed/grant1";
+
+const seedParentRow: ParentLookup = {
+	kind: "seed",
+	uri: SEED_PARENT_URI,
+	cid: "bafyseed",
+	granteeDid: AUTHOR,
+	expiresAt: null,
+	chainValid: true,
+	alreadyPlanted: false,
+};
+
+const rootBudRecord: BudRecord = {
+	title: "Root",
+	text: "a brand new story root",
+	parent: { uri: SEED_PARENT_URI, cid: "bafyseed" },
+	createdAt: NOW.toISOString(),
+};
+
+const baseSeedArgs: ValidateBudCreateArgs = {
+	record: rootBudRecord,
+	authorDid: AUTHOR,
+	parent: seedParentRow,
 	now: NOW,
 };
 
@@ -93,10 +125,10 @@ describe("validateBudCreate", () => {
 			).toEqual({ ok: false, reason: "self-reply" });
 		});
 
-		it("rejects a bud when the parent is still inside the 24h growing window", () => {
+		it("rejects a bud when the parent has not yet bloomed", () => {
 			const freshParent: ParentLookup = {
 				...parentRow,
-				createdAt: new Date(NOW.getTime() - GROWING_MS + 1),
+				bloomsAt: new Date(NOW.getTime() + 1),
 			};
 			expect(validateBudCreate({ ...baseArgs, parent: freshParent })).toEqual({
 				ok: false,
@@ -104,10 +136,10 @@ describe("validateBudCreate", () => {
 			});
 		});
 
-		it("accepts a bud whose parent is exactly 24h old", () => {
+		it("accepts a bud whose parent has exactly reached bloomsAt", () => {
 			const boundaryParent: ParentLookup = {
 				...parentRow,
-				createdAt: new Date(NOW.getTime() - GROWING_MS),
+				bloomsAt: new Date(NOW.getTime()),
 			};
 			expect(
 				validateBudCreate({ ...baseArgs, parent: boundaryParent }),
@@ -121,33 +153,81 @@ describe("validateBudCreate", () => {
 		});
 	});
 
-	describe("root records", () => {
-		const rootRecord: BudRecord = {
-			title: "Root",
-			text: "a brand new story root",
-			createdAt: NOW.toISOString(),
-		};
-
-		it("rejects a parentless bud that is not on the curated allow-list", () => {
+	describe("parentless buds", () => {
+		it("rejects a bud with no parent strongRef", () => {
 			expect(
 				validateBudCreate({
 					...baseArgs,
-					record: rootRecord,
+					record: {
+						title: "Orphan",
+						text: "no parent at all",
+						createdAt: NOW.toISOString(),
+					},
 					parent: null,
-					isAllowedRoot: false,
 				}),
 			).toEqual({ ok: false, reason: "parent-required" });
 		});
+	});
 
-		it("accepts a parentless bud whose AT-URI is on the curated allow-list", () => {
+	describe("seed parents", () => {
+		it("accepts a root bud whose parent is a valid seed granted to the author", () => {
+			expect(validateBudCreate(baseSeedArgs)).toEqual({ ok: true });
+		});
+
+		it("rejects a root bud whose seed parent is unknown", () => {
+			expect(validateBudCreate({ ...baseSeedArgs, parent: null })).toEqual({
+				ok: false,
+				reason: "parent-not-found",
+			});
+		});
+
+		it("rejects when the strongRef cid does not match the indexed seed", () => {
 			expect(
 				validateBudCreate({
-					...baseArgs,
-					record: rootRecord,
-					parent: null,
-					isAllowedRoot: true,
+					...baseSeedArgs,
+					record: {
+						...rootBudRecord,
+						parent: { uri: SEED_PARENT_URI, cid: "bafySTALE" },
+					},
 				}),
-			).toEqual({ ok: true });
+			).toEqual({ ok: false, reason: "parent-cid-mismatch" });
+		});
+
+		it("rejects when the bud author is not the seed's grantee", () => {
+			expect(validateBudCreate({ ...baseSeedArgs, authorDid: OTHER })).toEqual({
+				ok: false,
+				reason: "not-seed-grantee",
+			});
+		});
+
+		it("rejects when the seed has already expired", () => {
+			expect(
+				validateBudCreate({
+					...baseSeedArgs,
+					parent: {
+						...seedParentRow,
+						expiresAt: new Date(NOW.getTime() - 1),
+					},
+				}),
+			).toEqual({ ok: false, reason: "seed-expired" });
+		});
+
+		it("rejects when the seed chain is broken upstream", () => {
+			expect(
+				validateBudCreate({
+					...baseSeedArgs,
+					parent: { ...seedParentRow, chainValid: false },
+				}),
+			).toEqual({ ok: false, reason: "seed-chain-broken" });
+		});
+
+		it("rejects when another root bud already references the seed", () => {
+			expect(
+				validateBudCreate({
+					...baseSeedArgs,
+					parent: { ...seedParentRow, alreadyPlanted: true },
+				}),
+			).toEqual({ ok: false, reason: "seed-already-planted" });
 		});
 	});
 });
@@ -157,7 +237,7 @@ const BUD_URI = "at://did:plc:author/ink.branchline.bud/abc";
 const existingFresh: ExistingBud = {
 	uri: BUD_URI,
 	authorDid: AUTHOR,
-	createdAt: new Date(NOW.getTime() - 1000),
+	bloomsAt: new Date(NOW.getTime() + 1000),
 	childCount: 0,
 };
 
@@ -201,10 +281,10 @@ describe("validateBudUpdate", () => {
 		).toEqual({ ok: false, reason: "author-mismatch" });
 	});
 
-	it("rejects an edit at exactly 24h after createdAt (window closed)", () => {
+	it("rejects an edit when bloomsAt has passed", () => {
 		const expired: ExistingBud = {
 			...existingFresh,
-			createdAt: new Date(NOW.getTime() - GROWING_MS),
+			bloomsAt: new Date(NOW.getTime()),
 		};
 		expect(
 			validateBudUpdate({
@@ -278,10 +358,10 @@ describe("validateBudDelete", () => {
 		).toEqual({ ok: false, reason: "author-mismatch" });
 	});
 
-	it("rejects a delete at exactly 24h after createdAt (window closed)", () => {
+	it("rejects a delete when bloomsAt has passed", () => {
 		const expired: ExistingBud = {
 			...existingFresh,
-			createdAt: new Date(NOW.getTime() - GROWING_MS),
+			bloomsAt: new Date(NOW.getTime()),
 		};
 		expect(
 			validateBudDelete({
@@ -377,5 +457,201 @@ describe("validatePollenCreate", () => {
 				hasExistingPollen: true,
 			}),
 		).toEqual({ ok: false, reason: "duplicate-pollen" });
+	});
+});
+
+const ROOT_SEED_URI = "at://did:plc:branchline/ink.branchline.seed/root1";
+const ALICE = "did:plc:alice";
+const BOB = "did:plc:bob";
+
+const grantorRow: GrantorLookup = {
+	uri: ROOT_SEED_URI,
+	granteeDid: ALICE,
+	chainUris: [ROOT_SEED_URI],
+	expiresAt: null,
+	hasChild: false,
+};
+
+const subgrantRecord: SeedRecord = {
+	grantee: BOB,
+	grantor: ROOT_SEED_URI,
+	createdAt: NOW.toISOString(),
+};
+
+const baseSeedCreateArgs: ValidateSeedCreateArgs = {
+	record: subgrantRecord,
+	authorDid: ALICE,
+	grantor: grantorRow,
+	isAllowedRoot: false,
+	now: NOW,
+};
+
+describe("validateSeedCreate", () => {
+	it("accepts the happy path (grantee chaining from their own grant)", () => {
+		expect(validateSeedCreate(baseSeedCreateArgs)).toEqual({ ok: true });
+	});
+
+	it("rejects when the grantor is not in the index", () => {
+		expect(
+			validateSeedCreate({ ...baseSeedCreateArgs, grantor: null }),
+		).toEqual({ ok: false, reason: "grantor-not-found" });
+	});
+
+	it("rejects when the author is not the grantee of the named grantor", () => {
+		expect(
+			validateSeedCreate({ ...baseSeedCreateArgs, authorDid: BOB }),
+		).toEqual({ ok: false, reason: "not-grantee" });
+	});
+
+	it("rejects when the grantor has already expired", () => {
+		const expired: GrantorLookup = {
+			...grantorRow,
+			expiresAt: new Date(NOW.getTime() - 1),
+		};
+		expect(
+			validateSeedCreate({ ...baseSeedCreateArgs, grantor: expired }),
+		).toEqual({ ok: false, reason: "grantor-expired" });
+	});
+
+	it("rejects when the grantor expires exactly at now (boundary)", () => {
+		const boundary: GrantorLookup = {
+			...grantorRow,
+			expiresAt: new Date(NOW.getTime()),
+		};
+		expect(
+			validateSeedCreate({ ...baseSeedCreateArgs, grantor: boundary }),
+		).toEqual({ ok: false, reason: "grantor-expired" });
+	});
+
+	it("rejects when the grantor already has an active child", () => {
+		expect(
+			validateSeedCreate({
+				...baseSeedCreateArgs,
+				grantor: { ...grantorRow, hasChild: true },
+			}),
+		).toEqual({ ok: false, reason: "grantor-already-granted" });
+	});
+
+	describe("root seeds", () => {
+		const rootRecord: SeedRecord = {
+			grantee: ALICE,
+			createdAt: NOW.toISOString(),
+		};
+
+		it("accepts a grantor-less seed from an allow-listed author", () => {
+			expect(
+				validateSeedCreate({
+					...baseSeedCreateArgs,
+					record: rootRecord,
+					grantor: null,
+					isAllowedRoot: true,
+				}),
+			).toEqual({ ok: true });
+		});
+
+		it("rejects a grantor-less seed from a non-allow-listed author", () => {
+			expect(
+				validateSeedCreate({
+					...baseSeedCreateArgs,
+					record: rootRecord,
+					grantor: null,
+					isAllowedRoot: false,
+				}),
+			).toEqual({ ok: false, reason: "root-not-allowed" });
+		});
+	});
+});
+
+const SEED_URI = "at://did:plc:alice/ink.branchline.seed/mine";
+
+const existingSeed: ExistingSeed = {
+	uri: SEED_URI,
+	authorDid: ALICE,
+	grantorUri: ROOT_SEED_URI,
+	hasBud: false,
+};
+
+describe("validateSeedUpdate", () => {
+	it("accepts a same-author update that preserves grantor", () => {
+		expect(
+			validateSeedUpdate({
+				record: subgrantRecord,
+				authorDid: ALICE,
+				existing: existingSeed,
+			}),
+		).toEqual({ ok: true });
+	});
+
+	it("rejects when the record has not been seen before", () => {
+		expect(
+			validateSeedUpdate({
+				record: subgrantRecord,
+				authorDid: ALICE,
+				existing: null,
+			}),
+		).toEqual({ ok: false, reason: "seed-not-found" });
+	});
+
+	it("rejects when the event author is not the original author", () => {
+		expect(
+			validateSeedUpdate({
+				record: subgrantRecord,
+				authorDid: BOB,
+				existing: existingSeed,
+			}),
+		).toEqual({ ok: false, reason: "author-mismatch" });
+	});
+
+	it("rejects when the update moves the seed to a different grantor", () => {
+		expect(
+			validateSeedUpdate({
+				record: {
+					...subgrantRecord,
+					grantor: "at://did:plc:other/ink.branchline.seed/elsewhere",
+				},
+				authorDid: ALICE,
+				existing: existingSeed,
+			}),
+		).toEqual({ ok: false, reason: "grantor-changed" });
+	});
+
+	it("rejects when the update drops the grantor on a chained seed", () => {
+		expect(
+			validateSeedUpdate({
+				record: { ...subgrantRecord, grantor: undefined },
+				authorDid: ALICE,
+				existing: existingSeed,
+			}),
+		).toEqual({ ok: false, reason: "grantor-changed" });
+	});
+});
+
+describe("validateSeedDelete", () => {
+	it("accepts an own-author delete on an unplanted seed", () => {
+		expect(
+			validateSeedDelete({ authorDid: ALICE, existing: existingSeed }),
+		).toEqual({ ok: true });
+	});
+
+	it("rejects when the record has not been seen before", () => {
+		expect(validateSeedDelete({ authorDid: ALICE, existing: null })).toEqual({
+			ok: false,
+			reason: "seed-not-found",
+		});
+	});
+
+	it("rejects when the event author is not the original author", () => {
+		expect(
+			validateSeedDelete({ authorDid: BOB, existing: existingSeed }),
+		).toEqual({ ok: false, reason: "author-mismatch" });
+	});
+
+	it("rejects when the seed has already been used to plant a bud", () => {
+		expect(
+			validateSeedDelete({
+				authorDid: ALICE,
+				existing: { ...existingSeed, hasBud: true },
+			}),
+		).toEqual({ ok: false, reason: "seed-planted" });
 	});
 });

@@ -1,0 +1,41 @@
+.floating-brand {
+	position: fixed;
+	top: 1.2rem;
+	left: 1.5rem;
+	z-index: 45;
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-weight: 500;
+	font-size: 1.2rem;
+	letter-spacing: -0.012em;
+	color: var(--sea-ink);
+	text-decoration: none;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-4px);
+	transition:
+		color 160ms ease,
+		opacity 200ms ease,
+		transform 200ms ease;
+}
+
+.floating-brand .logo-mark {
+	width: 1.5em;
+	height: 1.5em;
+	color: color-mix(in oklab, var(--sea-ink) 85%, transparent);
+	transform: translateY(0.22em);
+}
+
+.floating-brand.is-visible {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateY(0);
+}
+
+.floating-brand:hover,
+.floating-brand:hover .logo-mark {
+	color: var(--lagoon-deep);
+}

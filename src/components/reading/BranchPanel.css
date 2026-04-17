@@ -1,0 +1,172 @@
+.branch-panel {
+	margin-top: 2.5rem;
+	padding-top: 2rem;
+	border-top: 1px dashed
+		color-mix(in oklab, var(--lagoon-deep) 35%, transparent);
+}
+
+.branch-panel-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1.4rem;
+}
+
+.branch-panel-title {
+	margin: 0.25rem 0 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 500;
+	font-size: 1.25rem;
+	line-height: 1.2;
+	color: var(--sea-ink);
+}
+
+.branch-panel-close {
+	flex-shrink: 0;
+	padding: 0.4rem 0.85rem;
+	border: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	font-family: var(--font-sans);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	cursor: pointer;
+	transition:
+		color 200ms ease,
+		border-color 200ms ease,
+		background-color 200ms ease;
+}
+
+.branch-panel-close:hover {
+	color: var(--sea-ink);
+	border-color: color-mix(in oklab, var(--sea-ink) 30%, transparent);
+	background: color-mix(in oklab, var(--sand) 40%, transparent);
+}
+
+.branch-panel-loading {
+	padding: 1.5rem 0;
+	font-family: var(--font-sans);
+	font-size: 0.85rem;
+	color: var(--sea-ink-soft);
+}
+
+.branch-panel-empty {
+	padding: 1.5rem 0;
+	font-family: var(--font-sans);
+	font-size: 0.85rem;
+	color: var(--sea-ink-soft);
+}
+
+.branch-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.9rem;
+	grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.branch-grid > li {
+	margin: 0;
+}
+
+.branch-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1rem 1.15rem 0.95rem;
+	border: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+	border-radius: 12px;
+	background: var(--surface);
+	transition:
+		border-color 240ms ease,
+		transform 240ms ease,
+		background-color 240ms ease;
+}
+
+.branch-card:hover {
+	border-color: color-mix(in oklab, var(--lagoon-deep) 35%, transparent);
+	background: var(--surface-strong);
+	transform: translateY(-1px);
+}
+
+.branch-card.is-current-path {
+	border-color: color-mix(in oklab, var(--lagoon-deep) 40%, transparent);
+	background: color-mix(in oklab, var(--lagoon-deep) 6%, var(--surface));
+}
+
+.branch-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+}
+
+.branch-card-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-family: var(--font-sans);
+	font-size: 0.58rem;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--kicker);
+}
+
+.branch-card-title {
+	margin: 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 500;
+	font-size: 1.1rem;
+	line-height: 1.2;
+	letter-spacing: -0.008em;
+	color: var(--sea-ink);
+	text-wrap: balance;
+}
+
+.branch-card-title-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.branch-card-title-link:hover {
+	color: var(--lagoon-deep);
+}
+
+/* Stretched link — the title anchor covers the card. */
+.branch-card-title-link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+}
+
+.branch-card-preview {
+	margin: 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-size: 0.88rem;
+	line-height: 1.45;
+	color: var(--sea-ink-soft);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.branch-card-author {
+	margin: 0;
+	font-family: var(--font-sans);
+	font-size: 0.76rem;
+	color: var(--sea-ink-soft);
+}
+
+.branch-card-handle {
+	color: var(--sea-ink);
+	font-weight: 600;
+}

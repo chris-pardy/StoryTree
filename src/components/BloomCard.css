@@ -1,0 +1,158 @@
+.bloom-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	height: 20rem;
+	padding: 1.4rem 1.5rem 1.25rem;
+	border: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+	border-radius: 14px;
+	background: var(--surface);
+	backdrop-filter: saturate(140%) blur(6px);
+	box-shadow: 0 1px 0 var(--inset-glint) inset;
+	overflow: hidden;
+	transition:
+		border-color 240ms ease,
+		transform 240ms ease,
+		background-color 240ms ease;
+}
+
+.bloom-card:hover {
+	border-color: color-mix(in oklab, var(--lagoon-deep) 30%, transparent);
+	background: var(--surface-strong);
+	transform: translateY(-1px);
+}
+
+.bloom-card-head {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.bloom-card-kicker {
+	font-family: var(--font-sans);
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--kicker);
+}
+
+.bloom-card-title {
+	flex-shrink: 0;
+	margin: 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 500;
+	font-size: 1.4rem;
+	line-height: 1.18;
+	letter-spacing: -0.012em;
+	color: var(--sea-ink);
+	text-wrap: balance;
+}
+
+.bloom-card-title em {
+	font-style: italic;
+	color: var(--sea-ink);
+}
+
+.bloom-card-title-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.bloom-card-title-link:hover {
+	color: var(--lagoon-deep);
+}
+
+/* Stretched link: the title anchor expands its hit-box to fill the card,
+   so a bare click anywhere on the card opens the bloom. Stats row sits
+   above this overlay via z-index. */
+.bloom-card-title-link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+}
+
+.bloom-card-authors {
+	flex-shrink: 0;
+	margin: -0.25rem 0 0;
+	font-family: var(--font-sans);
+	font-size: 0.82rem;
+	line-height: 1.4;
+	color: var(--sea-ink-soft);
+}
+
+.bloom-card-handle {
+	position: relative;
+	z-index: 1;
+	color: var(--sea-ink);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.bloom-card-handle:hover {
+	color: var(--lagoon-deep);
+	text-decoration: underline;
+}
+
+.bloom-card-preview {
+	flex: 1 1 0;
+	min-height: 0;
+	margin: 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-size: 0.95rem;
+	line-height: 1.5;
+	color: var(--sea-ink-soft);
+	overflow: hidden;
+	mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+}
+
+.bloom-card-stats {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: auto;
+	padding-top: 0.75rem;
+	border-top: 1px dashed color-mix(in oklab, var(--line) 55%, transparent);
+}
+
+.bloom-card-stat {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.25rem 0.6rem;
+	border: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	font-family: var(--font-sans);
+	font-size: 0.72rem;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.bloom-card-stat-action {
+	position: relative;
+	z-index: 1;
+	cursor: pointer;
+}
+
+.bloom-card-stat-action:hover {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+}
+
+.bloom-card-stat-action[aria-pressed="true"] {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+	background: color-mix(in oklab, var(--lagoon-deep) 8%, transparent);
+}
+
+.bloom-card-stat-action[data-errored="true"] {
+	color: color-mix(in oklab, var(--sea-ink-soft) 85%, red);
+	border-color: color-mix(in oklab, var(--line) 55%, red 20%);
+}

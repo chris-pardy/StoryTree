@@ -1,0 +1,36 @@
+.pill-tabs {
+	display: inline-flex;
+	gap: 0.4rem;
+	margin-top: 1.4rem;
+}
+
+.pill-tab {
+	appearance: none;
+	padding: 0.35rem 0.9rem;
+	border: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	font-family: var(--font-sans);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition:
+		background-color 240ms ease,
+		color 240ms ease,
+		border-color 240ms ease;
+}
+
+.pill-tab:hover {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+	background: color-mix(in oklab, var(--sand) 45%, transparent);
+}
+
+.pill-tab.is-active {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 50%, transparent);
+	background: color-mix(in oklab, var(--lagoon-deep) 10%, transparent);
+}

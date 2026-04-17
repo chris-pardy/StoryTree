@@ -1,3 +1,4 @@
+import "./ThemeToggle.css";
 import { Contrast, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 

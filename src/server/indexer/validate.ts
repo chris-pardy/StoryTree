@@ -18,17 +18,34 @@ export type BudRecord = {
 	formatting?: Array<FormatSpan>;
 };
 
-export type ParentLookup = {
+export type BudParentLookup = {
+	kind: "bud";
 	uri: string;
 	cid: string;
 	authorDid: string;
-	createdAt: Date;
+	bloomsAt: Date;
 };
+
+export type SeedParentLookup = {
+	kind: "seed";
+	uri: string;
+	cid: string;
+	granteeDid: string;
+	expiresAt: Date | null;
+	// Precomputed at read time by walking `chainUris`: every ancestor exists,
+	// none are expired, and at each hop child.authorDid == parent.granteeDid.
+	chainValid: boolean;
+	// True iff a *different* root bud already references this seed. The indexer
+	// excludes the candidate bud's own uri to keep replay idempotent.
+	alreadyPlanted: boolean;
+};
+
+export type ParentLookup = BudParentLookup | SeedParentLookup;
 
 export type ExistingBud = {
 	uri: string;
 	authorDid: string;
-	createdAt: Date;
+	bloomsAt: Date;
 	childCount: number;
 };
 
@@ -42,7 +59,11 @@ export type BudCreateRejection =
 	| "parent-not-found"
 	| "parent-cid-mismatch"
 	| "self-reply"
-	| "parent-growing";
+	| "parent-growing"
+	| "not-seed-grantee"
+	| "seed-expired"
+	| "seed-chain-broken"
+	| "seed-already-planted";
 
 export type BudUpdateRejection =
 	| "word-limit-exceeded"
@@ -78,23 +99,20 @@ export type ValidateBudCreateArgs = {
 	record: BudRecord;
 	authorDid: string;
 	parent: ParentLookup | null;
-	isAllowedRoot: boolean;
 	now: Date;
 };
 
 export function validateBudCreate(
 	args: ValidateBudCreateArgs,
 ): ValidationResult<BudCreateRejection> {
-	const { record, authorDid, parent, isAllowedRoot, now } = args;
+	const { record, authorDid, parent, now } = args;
 
 	if (countWords(record.text) > BUD_WORD_LIMIT) {
 		return { ok: false, reason: "word-limit-exceeded" };
 	}
 
 	if (!record.parent) {
-		return isAllowedRoot
-			? { ok: true }
-			: { ok: false, reason: "parent-required" };
+		return { ok: false, reason: "parent-required" };
 	}
 
 	if (!parent) {
@@ -105,12 +123,32 @@ export function validateBudCreate(
 		return { ok: false, reason: "parent-cid-mismatch" };
 	}
 
-	if (parent.authorDid === authorDid) {
-		return { ok: false, reason: "self-reply" };
+	if (parent.kind === "bud") {
+		if (parent.authorDid === authorDid) {
+			return { ok: false, reason: "self-reply" };
+		}
+
+		if (now.getTime() < parent.bloomsAt.getTime()) {
+			return { ok: false, reason: "parent-growing" };
+		}
+
+		return { ok: true };
 	}
 
-	if (now.getTime() - parent.createdAt.getTime() < GROWING_MS) {
-		return { ok: false, reason: "parent-growing" };
+	if (parent.granteeDid !== authorDid) {
+		return { ok: false, reason: "not-seed-grantee" };
+	}
+
+	if (parent.expiresAt && parent.expiresAt.getTime() <= now.getTime()) {
+		return { ok: false, reason: "seed-expired" };
+	}
+
+	if (!parent.chainValid) {
+		return { ok: false, reason: "seed-chain-broken" };
+	}
+
+	if (parent.alreadyPlanted) {
+		return { ok: false, reason: "seed-already-planted" };
 	}
 
 	return { ok: true };
@@ -136,7 +174,7 @@ export function validateBudUpdate(
 		return { ok: false, reason: "author-mismatch" };
 	}
 
-	if (now.getTime() - existing.createdAt.getTime() >= GROWING_MS) {
+	if (now.getTime() >= existing.bloomsAt.getTime()) {
 		return { ok: false, reason: "edit-window-closed" };
 	}
 
@@ -170,12 +208,140 @@ export function validateBudDelete(
 		return { ok: false, reason: "author-mismatch" };
 	}
 
-	if (now.getTime() - existing.createdAt.getTime() >= GROWING_MS) {
+	if (now.getTime() >= existing.bloomsAt.getTime()) {
 		return { ok: false, reason: "delete-window-closed" };
 	}
 
 	if (existing.childCount > 0) {
 		return { ok: false, reason: "has-children" };
+	}
+
+	return { ok: true };
+}
+
+export type SeedRecord = {
+	grantee: string;
+	grantor?: string;
+	expiresAt?: string;
+	createdAt: string;
+};
+
+export type GrantorLookup = {
+	uri: string;
+	granteeDid: string;
+	chainUris: Array<string>;
+	expiresAt: Date | null;
+	hasChild: boolean;
+};
+
+export type ExistingSeed = {
+	uri: string;
+	authorDid: string;
+	grantorUri: string | null;
+	hasBud: boolean;
+};
+
+export type SeedCreateRejection =
+	| "grantor-not-found"
+	| "not-grantee"
+	| "grantor-expired"
+	| "grantor-already-granted"
+	| "root-not-allowed";
+
+export type SeedUpdateRejection =
+	| "seed-not-found"
+	| "author-mismatch"
+	| "grantor-changed";
+
+export type SeedDeleteRejection =
+	| "seed-not-found"
+	| "author-mismatch"
+	| "seed-planted";
+
+export type ValidateSeedCreateArgs = {
+	record: SeedRecord;
+	authorDid: string;
+	grantor: GrantorLookup | null;
+	isAllowedRoot: boolean;
+	now: Date;
+};
+
+export function validateSeedCreate(
+	args: ValidateSeedCreateArgs,
+): ValidationResult<SeedCreateRejection> {
+	const { record, authorDid, grantor, isAllowedRoot, now } = args;
+
+	if (!record.grantor) {
+		return isAllowedRoot
+			? { ok: true }
+			: { ok: false, reason: "root-not-allowed" };
+	}
+
+	if (!grantor) {
+		return { ok: false, reason: "grantor-not-found" };
+	}
+
+	if (grantor.granteeDid !== authorDid) {
+		return { ok: false, reason: "not-grantee" };
+	}
+
+	if (grantor.expiresAt && grantor.expiresAt.getTime() <= now.getTime()) {
+		return { ok: false, reason: "grantor-expired" };
+	}
+
+	if (grantor.hasChild) {
+		return { ok: false, reason: "grantor-already-granted" };
+	}
+
+	return { ok: true };
+}
+
+export type ValidateSeedUpdateArgs = {
+	record: SeedRecord;
+	authorDid: string;
+	existing: ExistingSeed | null;
+};
+
+export function validateSeedUpdate(
+	args: ValidateSeedUpdateArgs,
+): ValidationResult<SeedUpdateRejection> {
+	const { record, authorDid, existing } = args;
+
+	if (!existing) {
+		return { ok: false, reason: "seed-not-found" };
+	}
+
+	if (existing.authorDid !== authorDid) {
+		return { ok: false, reason: "author-mismatch" };
+	}
+
+	if ((record.grantor ?? null) !== existing.grantorUri) {
+		return { ok: false, reason: "grantor-changed" };
+	}
+
+	return { ok: true };
+}
+
+export type ValidateSeedDeleteArgs = {
+	authorDid: string;
+	existing: ExistingSeed | null;
+};
+
+export function validateSeedDelete(
+	args: ValidateSeedDeleteArgs,
+): ValidationResult<SeedDeleteRejection> {
+	const { authorDid, existing } = args;
+
+	if (!existing) {
+		return { ok: false, reason: "seed-not-found" };
+	}
+
+	if (existing.authorDid !== authorDid) {
+		return { ok: false, reason: "author-mismatch" };
+	}
+
+	if (existing.hasBud) {
+		return { ok: false, reason: "seed-planted" };
 	}
 
 	return { ok: true };

@@ -2,8 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import type { Bud } from "../../components/BudCard";
 import { prisma } from "../../db";
 import { Prisma } from "../../generated/prisma/client.js";
-import { intervalSql } from "../blooms/sql";
-import { GROWING_WINDOW_HOURS } from "../config";
 import { type ResolvedActor, resolveHandles } from "../identity/resolve";
 
 type FreshRow = {
@@ -31,9 +29,9 @@ function toBud(
 }
 
 /**
- * Buds descended from `ancestorUri` that are still inside the 24h growing
- * window. Uses the packed `pathUris` array so descendants at any depth match
- * with a single indexed scan, no recursive CTE.
+ * Buds descended from `ancestorUri` that are still growing (bloomsAt in
+ * the future). Uses the packed `pathUris` array so descendants at any
+ * depth match with a single indexed scan, no recursive CTE.
  */
 export const listFreshBuds = createServerFn({ method: "GET" })
 	.inputValidator(
@@ -63,7 +61,7 @@ export const listFreshBuds = createServerFn({ method: "GET" })
       WHERE ${ancestorUri} = ANY(b."pathUris")
         AND b.uri <> ${ancestorUri}
         ${excludeClause}
-        AND b."createdAt" > NOW() - ${intervalSql(GROWING_WINDOW_HOURS)}
+        AND b."bloomsAt" > NOW()
       ORDER BY b."createdAt" DESC
       LIMIT ${limit}
     `);

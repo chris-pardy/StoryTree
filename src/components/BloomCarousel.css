@@ -1,0 +1,68 @@
+.bloom-carousel {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	width: calc(100vw - 2rem);
+	margin-left: 50%;
+	transform: translateX(-50%);
+}
+
+.bloom-carousel-track {
+	list-style: none;
+	margin: 0;
+	padding: 0.5rem 0.25rem 0.75rem;
+	display: flex;
+	gap: 1rem;
+	flex: 1 1 auto;
+	justify-content: safe center;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scroll-padding: 0.25rem;
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in oklab, var(--line) 70%, transparent) transparent;
+	overscroll-behavior-x: contain;
+}
+
+.bloom-carousel-track > li {
+	flex: 0 0 clamp(18rem, 28%, 24rem);
+	scroll-snap-align: start;
+	margin: 0;
+}
+
+@media (max-width: 48rem) {
+	.bloom-carousel-track > li {
+		flex-basis: 85%;
+	}
+}
+
+.bloom-carousel-nav {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	border: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
+	border-radius: 999px;
+	background: color-mix(in oklab, var(--surface) 55%, transparent);
+	backdrop-filter: blur(4px);
+	color: var(--sea-ink-soft);
+	cursor: pointer;
+	transition:
+		color 200ms ease,
+		border-color 200ms ease,
+		background-color 200ms ease,
+		opacity 200ms ease;
+}
+
+.bloom-carousel-nav:hover:not(:disabled) {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+	background: color-mix(in oklab, var(--surface-strong) 75%, transparent);
+}
+
+.bloom-carousel-nav:disabled {
+	opacity: 0.35;
+	cursor: default;
+}

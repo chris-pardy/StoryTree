@@ -1,0 +1,44 @@
+.atmosphere-inline-link {
+	color: var(--lagoon-deep);
+	text-decoration: none;
+	border-bottom: 1px solid
+		color-mix(in oklab, var(--lagoon-deep) 35%, transparent);
+}
+
+.atmosphere-inline-link:hover {
+	border-bottom-color: var(--lagoon-deep);
+}
+
+.policy-prose {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	margin-top: 2rem;
+	color: var(--sea-ink);
+	line-height: 1.65;
+}
+
+.policy-prose h2 {
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 500;
+	font-size: 1.15rem;
+	letter-spacing: -0.008em;
+	margin-top: 1.6rem;
+	color: var(--sea-ink);
+}
+
+.policy-prose p {
+	margin: 0;
+}
+
+.policy-prose ul {
+	margin: 0;
+	padding-left: 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.policy-prose code {
+	font-size: 0.85em;
+}

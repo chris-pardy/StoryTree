@@ -1,8 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
-import { prisma } from "../../db";
-import { getSessionAgent } from "../auth/session";
-import { type PollenRecord, validatePollenCreate } from "../indexer/validate";
 
 // Live record collection — see `lexicons/ink/branchline/pollen.json`.
 const POLLEN_COLLECTION = "ink.branchline.pollen";
@@ -25,6 +21,10 @@ type OutputSchema = { uri: string; cid: string };
 export const createPollen = createServerFn({ method: "POST" })
 	.inputValidator((args: InputSchema) => args)
 	.handler(async ({ data }): Promise<OutputSchema> => {
+		const { getRequest } = await import("@tanstack/react-start/server");
+		const { prisma } = await import("../../db");
+		const { getSessionAgent } = await import("../auth/session");
+		const { validatePollenCreate } = await import("../indexer/validate");
 		const session = await getSessionAgent(getRequest());
 		if (!session) {
 			throw new Error("Unauthorized");
@@ -49,7 +49,7 @@ export const createPollen = createServerFn({ method: "POST" })
 		});
 
 		const now = new Date();
-		const record: PollenRecord = {
+		const record = {
 			subject: { uri: subject.uri, cid: subject.cid },
 			createdAt: now.toISOString(),
 		};

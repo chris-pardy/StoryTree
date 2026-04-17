@@ -1,0 +1,143 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.getBuds",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Hydrate full bud views for a set of AT-URIs. Buds are returned in the same order as the input URIs. Unknown URIs are silently omitted from the response.",
+      "parameters": {
+        "type": "params",
+        "required": ["uris"],
+        "properties": {
+          "uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "maxLength": 25,
+            "description": "AT-URIs of buds to hydrate."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["buds"],
+          "properties": {
+            "buds": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#budView"
+              }
+            }
+          }
+        }
+      }
+    },
+    "authorView": {
+      "type": "object",
+      "required": ["did", "handle"],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did"
+        },
+        "handle": {
+          "type": "string",
+          "format": "handle"
+        },
+        "displayName": {
+          "type": "string",
+          "maxGraphemes": 64,
+          "maxLength": 640
+        }
+      }
+    },
+    "budView": {
+      "type": "object",
+      "required": [
+        "uri",
+        "cid",
+        "author",
+        "title",
+        "text",
+        "createdAt",
+        "depth",
+        "pollenCount"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        },
+        "author": {
+          "type": "ref",
+          "ref": "#authorView"
+        },
+        "title": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "ref",
+          "ref": "com.atproto.repo.strongRef"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Depth of this bud in the story tree (0 = root)."
+        },
+        "pollenCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime number of pollen grains on this bud (raw count, not the ranking-weighted score)."
+        },
+        "intermediateCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of distinct contributor DIDs on the root-to-bud path, including the root author and this bud's author."
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "at-uri"
+          },
+          "description": "AT-URIs of buds that extend this bud."
+        },
+        "growing": {
+          "type": "boolean",
+          "description": "True when the bud has not yet reached its bloomsAt time and is still in the growing window."
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "True when the bud's bloom time can no longer be extended."
+        },
+        "viewerPollinated": {
+          "type": "boolean",
+          "description": "True when the authenticated viewer has already pollinated this bud. Omitted when there is no viewer session."
+        },
+        "formatting": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "ink.branchline.bud#formatSpan"
+          }
+        }
+      }
+    }
+  }
+}

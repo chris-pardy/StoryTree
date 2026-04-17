@@ -6,6 +6,7 @@ body,
 
 body {
 	margin: 0;
+	padding-bottom: 4rem;
 	color: var(--sea-ink);
 	font-family: var(--font-sans);
 	background-color: var(--bg-base);

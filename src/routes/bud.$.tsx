@@ -1,49 +1,73 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { BudPage, NotFoundBud } from "#/components/reading/BudPage";
-import {
-	composeBudTitle,
-	fetchBudPath,
-	fetchLeaf,
-	parseBudShorthand,
-} from "#/components/reading/bud-loader";
-import { listFreshBuds } from "#/server/buds/fresh";
+import { Suspense } from "react";
+import { Branch } from "#/components/Branch";
+import { DotPulse } from "#/components/DotPulse";
+import { parseBudShorthand, parseBudSplat } from "#/lib/bud-uri";
+import { loadBudMeta } from "#/server/buds/load-meta";
 
 export const Route = createFileRoute("/bud/$")({
 	loader: async ({ params }) => {
 		const uri = parseBudShorthand(params._splat ?? "");
 		if (!uri) throw notFound();
-		const { story: leaf, rootTitle } = await fetchLeaf({ data: uri });
-		const pathPromise = fetchBudPath({ data: { uri } });
-		// Kick off alongside the path fetch; BudPage awaits via Suspense.
-		// `excludeUri` keeps the current leaf out of its own "fresh on this tree"
-		// rail.
-		const freshBudsPromise = pathPromise.then((stories) => {
-			const root = stories[0];
-			if (!root) return [];
-			return listFreshBuds({
-				data: { ancestorUri: root.id, excludeUri: uri },
-			});
-		});
-		return { leaf, rootTitle, pathPromise, freshBudsPromise };
+		const meta = await loadBudMeta({ data: { uri } });
+		return { uri, meta };
 	},
-	head: ({ loaderData }) => ({
-		meta: [
-			{
-				title: `${composeBudTitle(loaderData?.rootTitle, loaderData?.leaf.title)} | Branchline`,
-			},
-		],
-	}),
-	component: Bud,
+	head: ({ loaderData }) => {
+		const meta = loaderData?.meta;
+		if (!meta) return { meta: [{ title: "Branchline" }] };
+		const splat = parseBudSplat(loaderData.uri);
+		const authorLabel = meta.authorDisplayName?.trim()
+			? `${meta.authorDisplayName} (@${meta.authorHandle})`
+			: `@${meta.authorHandle}`;
+		const pageUrl = `${meta.publicUrl}/bud/${splat}`;
+		const imageUrl = `${meta.publicUrl}/og/bud/${splat}.png`;
+		const description = meta.preview
+			? `${meta.preview} — by ${authorLabel} on Branchline`
+			: `A bud by ${authorLabel} on Branchline`;
+		const title = `${meta.title} · Branchline`;
+		return {
+			meta: [
+				{ title },
+				{ name: "description", content: description },
+				{ property: "og:type", content: "article" },
+				{ property: "og:title", content: meta.title },
+				{ property: "og:description", content: description },
+				{ property: "og:url", content: pageUrl },
+				{ property: "og:image", content: imageUrl },
+				{ property: "og:image:width", content: "1200" },
+				{ property: "og:image:height", content: "630" },
+				{ property: "og:site_name", content: "Branchline" },
+				{ name: "twitter:card", content: "summary_large_image" },
+				{ name: "twitter:title", content: meta.title },
+				{ name: "twitter:description", content: description },
+				{ name: "twitter:image", content: imageUrl },
+			],
+		};
+	},
+	component: BudPage,
 	notFoundComponent: NotFoundBud,
 });
 
-function Bud() {
-	const { leaf, pathPromise, freshBudsPromise } = Route.useLoaderData();
+function BudPage() {
+	const { _splat } = Route.useParams();
+	const uri = parseBudShorthand(_splat ?? "");
+
+	if (!uri) return <NotFoundBud />;
+
 	return (
-		<BudPage
-			leaf={leaf}
-			pathPromise={pathPromise}
-			freshBudsPromise={freshBudsPromise}
-		/>
+		<main className="reading-column px-6 pb-28 pt-16 sm:pt-24">
+			<Suspense fallback={<DotPulse />}>
+				<Branch uri={uri} />
+			</Suspense>
+		</main>
+	);
+}
+
+function NotFoundBud() {
+	return (
+		<main className="reading-column px-6 pt-24">
+			<p className="masthead-kicker">404</p>
+			<h1 className="masthead-title">Not a bud we know.</h1>
+		</main>
 	);
 }

@@ -1,0 +1,52 @@
+{
+    "lexicon": 1,
+    "id": "ink.branchline.listAuthorSeeds",
+    "defs": {
+      "main": {
+        "type": "query",
+        "description": "List seeds that an author can trade or plant",
+        "parameters": {
+          "type": "params",
+          "required": ["actor"],
+          "properties": {
+            "actor": {
+              "type": "string",
+              "format": "did",
+              "description": "DID of the author whose buds to list."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination token returned by a prior call."
+            }
+          }
+        },
+        "output": {
+          "encoding": "application/json",
+          "schema": {
+            "type": "object",
+            "required": ["seeds"],
+            "properties": {
+                "seeds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "at-uri"
+                    }
+                },
+              "cursor": {
+                "type": "string",
+                "description": "Opaque pagination token for the next page. Absent when there are no more results."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  

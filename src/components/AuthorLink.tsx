@@ -31,7 +31,9 @@ export function AuthorLink({
 					{handle && (
 						<>
 							{" "}
-							<span className="author-link-handle">@{handle}</span>
+							<span className="text-muted-foreground font-normal">
+								@{handle}
+							</span>
 						</>
 					)}
 				</>

@@ -1,3 +1,4 @@
+import "./login.css";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { isSafeReturnTo } from "#/server/auth/return-to";
 import { getSessionDid } from "#/server/auth/session";

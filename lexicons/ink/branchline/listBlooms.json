@@ -49,55 +49,17 @@
     },
     "bloomView": {
       "type": "object",
-      "required": [
-        "bloom",
-        "root",
-        "createdAt",
-        "intermediateCount",
-        "pollenCount"
-      ],
+      "required": ["bloom", "root"],
       "properties": {
         "bloom": {
-          "type": "ref",
-          "ref": "#budRef",
-          "description": "The bud at the leaf of this path — the bloom itself."
+          "type": "string",
+          "format": "at-uri",
+          "description": "The bloom AT-URI."
         },
         "root": {
-          "type": "ref",
-          "ref": "#budRef",
-          "description": "The root bud (story seed) this bloom descends from."
-        },
-        "createdAt": {
           "type": "string",
-          "format": "datetime",
-          "description": "createdAt of the bloom bud."
-        },
-        "intermediateCount": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Count of distinct intermediate contributor DIDs on the root-to-bloom path, excluding the root author and the bloom author."
-        },
-        "pollenCount": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Lifetime raw pollen count on the bloom bud. Not the ranking-weighted score."
-        }
-      }
-    },
-    "budRef": {
-      "type": "object",
-      "required": ["uri", "title", "author"],
-      "properties": {
-        "uri": {
-          "type": "string",
-          "format": "at-uri"
-        },
-        "title": {
-          "type": "string"
-        },
-        "author": {
-          "type": "string",
-          "format": "did"
+          "format": "at-uri",
+          "description": "The root AT-URI this bloom descends from."
         }
       }
     }

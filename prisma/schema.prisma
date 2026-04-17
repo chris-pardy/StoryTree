@@ -14,6 +14,11 @@ model Bud {
   rootUri    String
   parentUri  String?
   parentCid  String?
+  // Every bud carries the seed it was planted under. Root buds name the seed
+  // directly (via the lexicon's `parent` strongRef resolving to a seed in the
+  // same repo); continuation buds inherit their parent bud's seed unchanged.
+  seedUri    String
+  seedCid    String
   depth      Int
   title      String
   text       String
@@ -22,16 +27,56 @@ model Bud {
   // with pathUris[0] == rootUri and pathUris[depth] == uri.
   pathUris   String[]
   createdAt  DateTime
-  indexedAt  DateTime @default(now())
+  bloomsAt   DateTime
+  locked     Boolean  @default(false)
+  indexedAt   DateTime @default(now())
 
   parent   Bud?  @relation("BudChildren", fields: [parentUri], references: [uri])
   children Bud[] @relation("BudChildren")
+  seed     Seed  @relation(fields: [seedUri], references: [uri])
 
   pollen Pollen[]
 
   @@index([rootUri])
   @@index([parentUri])
+  @@index([seedUri])
   @@index([authorDid])
+  @@index([createdAt])
+  @@index([bloomsAt])
+}
+
+// A grant authorizing a repo to plant a story tree. Lives in the grantor's
+// PDS; `grantorUri` chains back to the parent seed it was granted from, and
+// is null only for seeds authored by the branchline.ink root repo.
+// `granteeDid` names the DID allowed to claim this seed into their own repo.
+// A bud's `parent` strongRef may point to a seed only when that seed lives
+// in the same repo as the bud (authorDid == Bud.authorDid).
+model Seed {
+  uri        String    @id
+  cid        String
+  authorDid  String
+  granteeDid String
+  grantorUri String?   @unique
+  // Ordered root-to-self provenance chain of AT-URIs. Always length ==
+  // chain depth + 1, with chainUris[0] being the root seed (grantorUri
+  // null) and chainUris[last] == uri. Validated at read time by fetching
+  // `WHERE uri = ANY(chainUris)` and checking (a) every URI resolves to
+  // a current row, (b) no row is expired, (c) at each hop
+  // `child.authorDid == parent.granteeDid` so custody actually passed
+  // through the claimed grantee. No cid check — updates that extend
+  // expiresAt must not invalidate downstream grants.
+  chainUris  String[]
+  expiresAt  DateTime?
+  createdAt  DateTime
+  indexedAt  DateTime  @default(now())
+
+  grantor Seed? @relation("SeedGrant", fields: [grantorUri], references: [uri], onDelete: SetNull)
+  child   Seed? @relation("SeedGrant")
+
+  buds Bud[]
+
+  @@index([authorDid])
+  @@index([granteeDid])
   @@index([createdAt])
 }
 

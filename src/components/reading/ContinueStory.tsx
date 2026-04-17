@@ -1,22 +1,16 @@
+import "./ContinueStory.css";
 import { Link, useRouterState } from "@tanstack/react-router";
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import {
-	IfLoggedIn,
-	IfLoggedOut,
-	IfNotViewer,
-	useViewerDid,
-} from "#/components/auth/gates";
+import { IfLoggedIn, IfLoggedOut, IfNotViewer } from "#/components/auth/gates";
 import { publishBud } from "#/server/buds/publish";
 import type { FormatSpan } from "#/server/indexer/validate";
 import { proseMirrorToBud } from "./pm-to-bud";
-import { renderBudBody } from "./render-bud";
-import type { DraftStory, Story } from "./types";
 
-type Draft = {
+export type Draft = {
 	title: string;
 	text: string;
 	formatting?: Array<FormatSpan>;
@@ -29,16 +23,18 @@ type Draft = {
  * react to a successful publish (append to local stories, push URL, open
  * share prompt).
  */
-function ContinueEditor({
+export function ContinueEditor({
 	onSubmit,
 	onCancel,
 	saving,
 	error,
+	placeholder = "Start writing…",
 }: {
 	onSubmit: (draft: Draft) => void;
 	onCancel: () => void;
 	saving: boolean;
 	error: string | null;
+	placeholder?: string;
 }) {
 	const [title, setTitle] = useState("");
 
@@ -55,7 +51,7 @@ function ContinueEditor({
 				strike: false,
 			}),
 			Placeholder.configure({
-				placeholder: "And so it continues…",
+				placeholder,
 			}),
 		],
 		content: "",
@@ -137,25 +133,19 @@ function ContinueEditor({
 }
 
 export function ContinueStory({
-	onAdd,
 	onPublished,
 	parentUri,
 	parentAuthor,
 }: {
-	/** Local-only fallback for routes that don't have a persisted parent. */
-	onAdd?: (draft: DraftStory) => void;
-	/** Called after a successful publishBud — parent appends, scrolls, opens share. */
-	onPublished?: (story: Story) => void;
-	parentUri?: string;
-	parentAuthor?: string;
+	onPublished: (uri: string) => void;
+	parentUri: string;
+	parentAuthor: string;
 }) {
 	const [writing, setWriting] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const viewerDid = useViewerDid();
-	// Used to round-trip the logged-out viewer back here after they sign in.
-	// Pull both pathname and hash so a deep-link visitor (e.g. from a
-	// bluesky crosspost landing on `#bud-<rkey>`) returns to the same anchor.
+	// Round-trip the logged-out viewer back here (including hash anchors for
+	// deep-linked crossposts) after they sign in.
 	const returnTo = useRouterState({
 		select: (s) =>
 			s.location.pathname + (s.location.hash ? `#${s.location.hash}` : ""),
@@ -163,16 +153,6 @@ export function ContinueStory({
 
 	const handleSubmit = async (draft: Draft) => {
 		if (saving) return;
-		if (!parentUri) {
-			// Local-only path — no persisted parent, no server fn. Kept for
-			// any caller that mounts ReadingColumn without a real bud context.
-			onAdd?.({
-				title: draft.title,
-				body: renderBudBody(draft.text, draft.formatting),
-			});
-			setWriting(false);
-			return;
-		}
 		setSaving(true);
 		setError(null);
 		try {
@@ -184,21 +164,9 @@ export function ContinueStory({
 					formatting: draft.formatting,
 				},
 			});
-			// Build the optimistic Story locally so the parent can append it
-			// without round-tripping through the route loader. Mirrors the shape
-			// produced by `rowToStory` in bud-loader.ts.
-			const newStory: Story = {
-				id: uri,
-				title: draft.title || undefined,
-				author: viewerDid ?? "",
-				timestamp: new Date().toISOString(),
-				pollen: 0,
-				body: renderBudBody(draft.text, draft.formatting),
-				fresh: true,
-			};
-			onPublished?.(newStory);
-			setWriting(false);
 			setSaving(false);
+			setWriting(false);
+			onPublished(uri);
 		} catch (e) {
 			setError(
 				e instanceof Error ? e.message : "Could not publish this passage.",
@@ -236,6 +204,7 @@ export function ContinueStory({
 			onCancel={() => setWriting(false)}
 			saving={saving}
 			error={error}
+			placeholder="And so it continues…"
 		/>
 	);
 }

@@ -20,6 +20,10 @@ const WRITE_SCOPES: Array<{ nsid: string; actions: Array<string> }> = [
 		actions: ["create", "update", "delete"],
 	},
 	{
+		nsid: "ink.branchline.seed",
+		actions: ["create", "update", "delete"],
+	},
+	{
 		nsid: "app.bsky.feed.post",
 		actions: ["create"],
 	},

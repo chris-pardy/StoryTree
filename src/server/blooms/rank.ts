@@ -1,6 +1,6 @@
 import { prisma } from "../../db";
 import { Prisma } from "../../generated/prisma/client.js";
-import { FOLLOW_WINDOW_HOURS, GROWING_WINDOW_HOURS } from "../config";
+import { FOLLOW_WINDOW_HOURS } from "../config";
 import { intervalSql, textPreviewSql } from "./sql";
 
 /**
@@ -46,19 +46,13 @@ type RankedBloomRow = Omit<RankedBloom, "score"> & { score: string | number };
 /**
  * Fetch the top N blooms ranked by pollen-weighted score.
  *
- * "Bloom" eligibility matches the listBlooms lexicon: past the 24h
- * growing window, and either still inside the 48h follow window OR
- * never gained a child.
+ * "Bloom" eligibility: `bloomsAt <= NOW()` (past the growing window),
+ * and either still inside the follow window (`bloomsAt > NOW() - FOLLOW`)
+ * or never gained a child.
  *
  * Tunables (`timeHalfLifeHours`, `depthHalfLifeLevels`) are passed in so
  * the algorithm can be A/B'd without redeploying. Defaults match the
  * exported constants above.
- *
- * Performance note: the eligible-bloom set is bounded by the 24-48h follow
- * window plus orphan buds with no children. Per-bloom we walk `pathUris`
- * (length = depth + 1, typically small) and join Pollen on each ancestor.
- * If the orphan set grows large enough to matter, add a GIN index on
- * `Bud.pathUris` and revisit.
  */
 export async function rankBlooms(opts: {
 	limit: number;
@@ -78,9 +72,9 @@ export async function rankBlooms(opts: {
       SELECT b.uri, b.depth, b."pathUris", b."createdAt",
              b.title, b.text, b."authorDid", b."rootUri"
       FROM "Bud" b
-      WHERE b."createdAt" <= NOW() - ${intervalSql(GROWING_WINDOW_HOURS)}
+      WHERE b."bloomsAt" <= NOW()
         AND (
-          b."createdAt" > NOW() - ${intervalSql(FOLLOW_WINDOW_HOURS)}
+          b."bloomsAt" > NOW() - ${intervalSql(FOLLOW_WINDOW_HOURS)}
           OR NOT EXISTS (
             SELECT 1 FROM "Bud" c WHERE c."parentUri" = b.uri
           )

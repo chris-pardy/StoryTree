@@ -1,0 +1,34 @@
+.bloom-feed {
+	width: min(58rem, calc(100% - 2rem));
+	margin-inline: auto;
+}
+
+.bloom-feed-masthead {
+	margin-bottom: 3rem;
+	padding-bottom: 1.6rem;
+	border-bottom: 1px solid color-mix(in oklab, var(--line) 45%, transparent);
+}
+
+.bloom-feed-title {
+	margin: 0;
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 500;
+	font-size: clamp(2rem, 3.6vw + 1rem, 3rem);
+	line-height: 1;
+	letter-spacing: -0.02em;
+	color: var(--sea-ink);
+	text-wrap: balance;
+}
+
+.bloom-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 1.4rem;
+	grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+}
+
+.bloom-grid > li {
+	margin: 0;
+}

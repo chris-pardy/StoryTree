@@ -1,0 +1,135 @@
+.bsky-prompt {
+	margin-top: 3rem;
+	padding: 0.85rem 0;
+	border-top: 1px solid
+		color-mix(in oklab, var(--sea-ink-soft) 14%, transparent);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	font-family: var(--font-sans);
+	font-size: 0.64rem;
+	font-weight: 500;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: color-mix(in oklab, var(--sea-ink-soft) 62%, transparent);
+	animation: bsky-prompt-rise 420ms ease both;
+}
+
+.bsky-prompt[data-state="composing"] {
+	display: block;
+}
+
+.bsky-prompt[data-state="posted"] {
+	justify-content: center;
+}
+
+@keyframes bsky-prompt-rise {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.bsky-prompt-note {
+	font-style: normal;
+}
+
+.bsky-prompt-label {
+	display: block;
+	margin-bottom: 0.6rem;
+	color: color-mix(in oklab, var(--sea-ink-soft) 72%, transparent);
+}
+
+.bsky-prompt-textarea {
+	width: 100%;
+	resize: vertical;
+	padding: 0.7rem 0.85rem;
+	border: 1px solid color-mix(in oklab, var(--sea-ink-soft) 22%, transparent);
+	border-radius: 0.4rem;
+	background: color-mix(in oklab, var(--lagoon-deep) 3%, transparent);
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-size: 1rem;
+	line-height: 1.45;
+	letter-spacing: -0.003em;
+	color: var(--sea-ink);
+	text-transform: none;
+	outline: none;
+}
+
+.bsky-prompt-textarea:focus {
+	border-color: color-mix(in oklab, var(--lagoon-deep) 55%, transparent);
+}
+
+.bsky-prompt-textarea:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.bsky-prompt-row {
+	margin-top: 0.8rem;
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.bsky-prompt-hint {
+	color: color-mix(in oklab, var(--sea-ink-soft) 48%, transparent);
+	font-size: 0.6rem;
+}
+
+.bsky-prompt-actions {
+	display: flex;
+	align-items: baseline;
+	gap: 1rem;
+}
+
+.bsky-prompt-link,
+.bsky-prompt-dismiss {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	color: color-mix(in oklab, var(--sea-ink-soft) 78%, transparent);
+	cursor: pointer;
+}
+
+.bsky-prompt-link:hover,
+.bsky-prompt-link:focus-visible {
+	color: var(--lagoon-deep);
+	outline: none;
+}
+
+.bsky-prompt-dismiss:hover,
+.bsky-prompt-dismiss:focus-visible {
+	color: var(--sea-ink);
+	outline: none;
+}
+
+.bsky-prompt-link:disabled,
+.bsky-prompt-dismiss:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Shared spinner — also defined in ContinueStory.css */
+.bsky-prompt .continue-submit-spinner {
+	display: inline-block;
+	margin-right: 0.35rem;
+	vertical-align: -2px;
+	animation: bsky-submit-spin 0.85s linear infinite;
+}
+
+@keyframes bsky-submit-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

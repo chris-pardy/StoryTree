@@ -1,28 +1,34 @@
-import {
-	Await,
-	createFileRoute,
-	getRouteApi,
-	notFound,
-} from "@tanstack/react-router";
-import { Suspense } from "react";
-import { type Bloom, BloomCard } from "#/components/BloomCard";
-import { listAuthorBlooms } from "#/server/blooms/author";
+import "#/components/BloomFeed.css";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, getRouteApi, notFound } from "@tanstack/react-router";
+import { Suspense, useState } from "react";
+import { AuthorLink } from "#/components/AuthorLink";
+import { AuthorPlantingsList } from "#/components/AuthorPlantingsList";
+import { BudCard } from "#/components/BudCard";
+import { DotPulse } from "#/components/DotPulse";
+import { PillTabs } from "#/components/PillTabs";
+import { authorBudsQuery } from "#/queries/author-buds";
 import { resolveProfileActor } from "#/server/identity/profile-actor";
 
 const rootApi = getRouteApi("__root__");
 
+type Tab = "blooms" | "plantings";
+
+const PROFILE_TABS = [
+	{ value: "blooms", label: "Blooms" },
+	{ value: "plantings", label: "Plantings" },
+] as const satisfies ReadonlyArray<{ value: Tab; label: string }>;
+
 export const Route = createFileRoute("/$handle")({
 	loader: async ({ params }) => {
-		const actor = await resolveProfileActor({ data: { param: params.handle } });
-		if (!actor) throw notFound();
-		const bloomsPromise = listAuthorBlooms({
-			data: { actor: actor.did, limit: 50 },
+		const actor = await resolveProfileActor({
+			data: { param: params.handle },
 		});
+		if (!actor) throw notFound();
 		return {
 			did: actor.did,
 			handle: actor.handle,
 			displayName: actor.displayName,
-			bloomsPromise,
 		};
 	},
 	head: ({ loaderData }) => {
@@ -34,12 +40,19 @@ export const Route = createFileRoute("/$handle")({
 });
 
 function Profile() {
-	const { did: viewerDid } = rootApi.useLoaderData();
-	const { handle, displayName, bloomsPromise } = Route.useLoaderData();
+	rootApi.useLoaderData();
+	const { did, handle, displayName } = Route.useLoaderData();
 	const isDid = handle.startsWith("did:");
 	const atHandle = isDid ? handle : `@${handle}`;
 	const primary = displayName ?? atHandle;
-	const loggedIn = Boolean(viewerDid);
+	const [tab, setTab] = useState<Tab>("blooms");
+
+	const kicker =
+		tab === "blooms"
+			? "Blooms · latest in each branch"
+			: "Plantings · trees sown";
+	const title =
+		tab === "blooms" ? `Where ${primary} left off` : `What ${primary} planted`;
 
 	return (
 		<main className="px-6 pb-28 pt-16 sm:pt-24">
@@ -49,7 +62,12 @@ function Profile() {
 					<h1 className="masthead-title">{primary}</h1>
 					{displayName && (
 						<p className="masthead-lede">
-							<span className="author-link-handle">{atHandle}</span>
+							<AuthorLink
+								did={did}
+								handle={handle}
+								displayName={displayName}
+								className="author-link-handle"
+							/>
 						</p>
 					)}
 				</header>
@@ -57,42 +75,43 @@ function Profile() {
 
 			<section className="bloom-feed">
 				<header className="bloom-feed-masthead rise-in">
-					<p className="masthead-kicker">Blooms · latest in each branch</p>
-					<h1 className="bloom-feed-title">Where {primary} left off</h1>
+					<p className="masthead-kicker">{kicker}</p>
+					<h1 className="bloom-feed-title">{title}</h1>
+					<PillTabs
+						label="Profile view"
+						value={tab}
+						onChange={setTab}
+						tabs={PROFILE_TABS}
+					/>
 				</header>
-				<Suspense fallback={<BloomListFallback />}>
-					<Await promise={bloomsPromise}>
-						{(blooms) => <BloomList blooms={blooms} loggedIn={loggedIn} />}
-					</Await>
+				<Suspense fallback={<DotPulse />}>
+					{tab === "blooms" ? (
+						<AuthorBudsList did={did} />
+					) : (
+						<AuthorPlantingsList did={did} />
+					)}
 				</Suspense>
 			</section>
 		</main>
 	);
 }
 
-function BloomList({
-	blooms,
-	loggedIn,
-}: {
-	blooms: Array<Bloom>;
-	loggedIn: boolean;
-}) {
-	if (blooms.length === 0) {
+function AuthorBudsList({ did }: { did: string }) {
+	const { data: buds } = useSuspenseQuery(authorBudsQuery(did));
+
+	if (buds.length === 0) {
 		return <p className="bloom-feed-empty">No blooms yet.</p>;
 	}
+
 	return (
 		<ul className="bloom-grid">
-			{blooms.map((bloom) => (
-				<li key={bloom.uri}>
-					<BloomCard bloom={bloom} loggedIn={loggedIn} />
+			{buds.map((bud) => (
+				<li key={bud.bloom}>
+					<BudCard uri={bud.bloom} rootUri={bud.root} />
 				</li>
 			))}
 		</ul>
 	);
-}
-
-function BloomListFallback() {
-	return <p className="bloom-feed-empty">Gathering blooms…</p>;
 }
 
 function NotFoundProfile() {

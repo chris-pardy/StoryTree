@@ -1,48 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { Bloom } from "../../components/BloomCard";
-import { prisma } from "../../db";
-import { Prisma } from "../../generated/prisma/client.js";
-import { resolveHandles } from "../identity/resolve";
-import { type BloomRow, toBloom } from "./shape";
-import { textPreviewSql } from "./sql";
+import type * as ListAuthorBuds from "../../generated/lexicons/types/ink/branchline/listAuthorBuds";
+
+function encodeCursor(createdAt: Date, uri: string): string {
+	return `${createdAt.toISOString()}::${uri}`;
+}
+
+function decodeCursor(cursor: string): { createdAt: Date; uri: string } | null {
+	const idx = cursor.indexOf("::");
+	if (idx === -1) return null;
+	const ts = cursor.slice(0, idx);
+	const uri = cursor.slice(idx + 2);
+	const createdAt = new Date(ts);
+	if (Number.isNaN(createdAt.getTime()) || !uri) return null;
+	return { createdAt, uri };
+}
 
 /**
- * Author-profile bloom listing. Returns the same enriched Bloom shape as
- * the home feed, filtered to buds authored by `actor` where the author has
- * no deeper descendant in the same branch (collapses back-and-forth to the
- * author's terminal contribution per chain).
+ * Author-profile bud listing. Returns budViews for buds authored by `actor`
+ * where the author has no deeper descendant in the same branch (collapses
+ * back-and-forth to the author's terminal contribution per chain).
  */
-export const listAuthorBlooms = createServerFn({ method: "GET" })
-	.inputValidator((args: { actor: string; limit?: number }) => args)
-	.handler(async ({ data }): Promise<Bloom[]> => {
-		const { actor, limit = 50 } = data;
-		const rows = await prisma.$queryRaw<BloomRow[]>(Prisma.sql`
-      SELECT
-        b.uri,
-        b.title,
-        ${textPreviewSql("b.text")} AS "textPreview",
-        b."authorDid",
-        b."createdAt",
-        b."rootUri",
-        r.title AS "rootTitle",
-        r."authorDid" AS "rootAuthor",
-        (
-          SELECT COUNT(*)::int FROM "Pollen" p
-          WHERE p."subjectUri" = b.uri
-        ) AS "pollenCount",
-        (
-          SELECT COUNT(DISTINCT path."authorDid")::int
-          FROM "Bud" path
-          WHERE path.uri = ANY(b."pathUris")
-            AND path."authorDid" <> b."authorDid"
-            AND path."authorDid" <> r."authorDid"
-        ) AS "intermediateCount",
-        (
-          SELECT COUNT(*)::int FROM "Bud" c
-          WHERE c."parentUri" = b.uri
-        ) AS "budCount"
+export async function listAuthorBudsHandler(args: {
+	actor: string;
+	limit?: number;
+	cursor?: string;
+}): Promise<ListAuthorBuds.OutputSchema> {
+	const { prisma } = await import("../../db");
+	const { Prisma } = await import("../../generated/prisma/client.js");
+
+	const { actor, cursor } = args;
+	const limit = Math.min(Math.max(args.limit ?? 50, 1), 100);
+	const cursorParsed = cursor ? decodeCursor(cursor) : null;
+
+	type Row = { uri: string; rootUri: string; createdAt: Date };
+	let rows: Row[];
+
+	if (cursorParsed) {
+		rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
+      SELECT b.uri, b."rootUri", b."createdAt"
       FROM "Bud" b
-      INNER JOIN "Bud" r ON r.uri = b."rootUri"
       WHERE b."authorDid" = ${actor}
         AND NOT EXISTS (
           SELECT 1 FROM "Bud" d
@@ -50,11 +46,44 @@ export const listAuthorBlooms = createServerFn({ method: "GET" })
             AND d.uri <> b.uri
             AND b.uri = ANY(d."pathUris")
         )
-      ORDER BY b."createdAt" DESC
-      LIMIT ${limit}
+        AND (b."createdAt", b.uri) < (${cursorParsed.createdAt}, ${cursorParsed.uri})
+      ORDER BY b."createdAt" DESC, b.uri DESC
+      LIMIT ${limit + 1}
     `);
-		const handles = await resolveHandles(
-			rows.flatMap((r) => [r.authorDid, r.rootAuthor]),
-		);
-		return rows.map((row) => toBloom(row, handles));
-	});
+	} else {
+		rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
+      SELECT b.uri, b."rootUri", b."createdAt"
+      FROM "Bud" b
+      WHERE b."authorDid" = ${actor}
+        AND NOT EXISTS (
+          SELECT 1 FROM "Bud" d
+          WHERE d."authorDid" = ${actor}
+            AND d.uri <> b.uri
+            AND b.uri = ANY(d."pathUris")
+        )
+      ORDER BY b."createdAt" DESC, b.uri DESC
+      LIMIT ${limit + 1}
+    `);
+	}
+
+	let nextCursor: string | undefined;
+	if (rows.length > limit) {
+		rows = rows.slice(0, limit);
+		const last = rows[rows.length - 1];
+		nextCursor = encodeCursor(last.createdAt, last.uri);
+	}
+
+	return {
+		buds: rows.map((r) => ({ bloom: r.uri, root: r.rootUri })),
+		cursor: nextCursor,
+	};
+}
+
+export const listAuthorBuds = createServerFn({ method: "GET" })
+	.inputValidator(
+		(args: { actor: string; limit?: number; cursor?: string }) => args,
+	)
+	.handler(async ({ data }) => listAuthorBudsHandler(data));
+
+/** @deprecated Use {@link listAuthorBuds}. */
+export const listAuthorBlooms = listAuthorBuds;

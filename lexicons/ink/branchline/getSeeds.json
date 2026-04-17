@@ -1,0 +1,92 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.getSeeds",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Hydrate seed views for a set of AT-URIs. Seeds are returned in the same order as the input URIs. Unknown URIs are silently omitted.",
+      "parameters": {
+        "type": "params",
+        "required": ["uris"],
+        "properties": {
+          "uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "maxLength": 25,
+            "description": "AT-URIs of seeds to hydrate."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["seeds"],
+          "properties": {
+            "seeds": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#seedView"
+              }
+            }
+          }
+        }
+      }
+    },
+    "authorView": {
+      "type": "object",
+      "required": ["did", "handle"],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did"
+        },
+        "handle": {
+          "type": "string",
+          "format": "handle"
+        },
+        "displayName": {
+          "type": "string",
+          "maxGraphemes": 64,
+          "maxLength": 640
+        }
+      }
+    },
+    "seedView": {
+      "type": "object",
+      "required": ["uri", "cid", "grantee", "grantedBy", "createdAt"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        },
+        "grantee": {
+          "type": "ref",
+          "ref": "#authorView"
+        },
+        "grantedBy": {
+          "type": "ref",
+          "ref": "#authorView",
+          "description": "Immediate grantor (depth 1 only) — the author of this seed record. For a root seed this is also the chain's origin."
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "Earliest expiresAt across the entire provenance chain (self + ancestors). Absent when no seed in the chain has an expiry."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        }
+      }
+    }
+  }
+}

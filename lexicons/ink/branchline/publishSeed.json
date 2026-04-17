@@ -1,0 +1,73 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.publishSeed",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Gift a seed. The caller must be signed in and must be the grantee of `grantor`; publishing passes that seed's planting right on to `grantee` as a new child seed. The AppView writes an ink.branchline.seed record to the caller's PDS and mirrors it into the local read cache. Root (grantor-less) seeds are not created through this endpoint — they are authored only by the branchline.ink repo.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["grantor", "grantee"],
+          "properties": {
+            "grantor": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "AT-URI of the seed the caller currently holds as grantee."
+            },
+            "grantee": {
+              "type": "string",
+              "format": "did",
+              "description": "DID of the new grantee receiving the gift."
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "datetime",
+              "description": "Optional expiry for the new grant. Must not extend past the grantor chain's earliest expiry."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "format": "cid"
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "Unauthorized",
+          "description": "The caller is not signed in."
+        },
+        {
+          "name": "GrantorNotFound",
+          "description": "The grantor seed does not exist in the AppView."
+        },
+        {
+          "name": "NotGrantee",
+          "description": "The caller is not the grantee of the grantor seed."
+        },
+        {
+          "name": "GrantorExpired",
+          "description": "The grantor seed's expiry has passed."
+        },
+        {
+          "name": "GrantorAlreadyGranted",
+          "description": "The grantor seed has already been granted to another recipient."
+        }
+      ]
+    }
+  }
+}

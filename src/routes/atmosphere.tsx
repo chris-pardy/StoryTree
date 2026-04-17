@@ -1,3 +1,4 @@
+import "./policy-prose.css";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/atmosphere")({

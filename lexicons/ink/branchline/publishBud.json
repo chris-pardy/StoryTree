@@ -4,7 +4,7 @@
   "defs": {
     "main": {
       "type": "procedure",
-      "description": "Publish a new bud as a continuation of an existing parent. The caller must be signed in. The AppView writes an ink.branchline.bud record to the caller's PDS and mirrors it into the local read cache so the new bud is immediately navigable. Rejection reasons mirror ink.branchline.bud create validation — 500-word limit on `text`, 24h parent growing window, self-reply, etc. Root buds are not created through this procedure; they are written directly to an allowlisted author's PDS and picked up by the indexer.",
+      "description": "Publish a new bud. The parent may be another bud (continuation) or a seed (planting a root bud). The caller must be signed in. The AppView writes an ink.branchline.bud record to the caller's PDS and mirrors it into the local read cache so the new bud is immediately navigable. Rejection reasons mirror ink.branchline.bud create validation — 500-word limit on `text`, 24h parent growing window, self-reply, seed chain/expiry/grantee checks, etc.",
       "input": {
         "encoding": "application/json",
         "schema": {
@@ -14,7 +14,7 @@
             "parentUri": {
               "type": "string",
               "format": "at-uri",
-              "description": "AT-URI of the parent bud being continued."
+              "description": "AT-URI of the parent — either an ink.branchline.bud (continuation) or an ink.branchline.seed (root bud being planted)."
             },
             "title": {
               "type": "string",
@@ -60,7 +60,11 @@
         },
         {
           "name": "ParentNotFound",
-          "description": "The parent bud does not exist in the AppView."
+          "description": "The parent (bud or seed) does not exist in the AppView."
+        },
+        {
+          "name": "ParentCidMismatch",
+          "description": "The resolved parent's CID does not match the value on the record."
         },
         {
           "name": "SelfReply",
@@ -73,6 +77,22 @@
         {
           "name": "WordLimitExceeded",
           "description": "The bud text exceeds the 500-word ceiling."
+        },
+        {
+          "name": "NotSeedGrantee",
+          "description": "The caller is not the grantee of the seed they are trying to plant."
+        },
+        {
+          "name": "SeedExpired",
+          "description": "The seed's expiry has passed."
+        },
+        {
+          "name": "SeedChainBroken",
+          "description": "The seed's ancestor chain is missing, expired, or broken by a grantor/grantee mismatch."
+        },
+        {
+          "name": "SeedAlreadyPlanted",
+          "description": "Another bud has already been planted from this seed."
         }
       ]
     }

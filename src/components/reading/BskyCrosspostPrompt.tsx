@@ -1,3 +1,4 @@
+import "./BskyCrosspostPrompt.css";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { crosspostBudToBsky } from "#/server/buds/crosspost";

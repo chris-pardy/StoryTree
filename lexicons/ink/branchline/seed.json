@@ -1,0 +1,34 @@
+{
+    "lexicon": 1,
+    "id": "ink.branchline.seed",
+    "defs": {
+        "main": {
+            "type": "record",
+            "description": "A seed, the permission to plant a story tree.",
+            "key": "tid",
+            "required": ["grantee", "createdAt"],
+            "record": {
+                "grantee": {
+                    "type": "string",
+                    "format": "did",
+                    "description": "The DID of the grantee."
+                },
+                "grantor": {
+                    "type": "string",
+                    "format": "at-uri",
+                    "description": "The seed that this was granted from"
+                },
+                "expiresAt": {
+                    "type": "string",
+                    "format": "datetime",
+                    "description": "The timestamp of the grant expiration."
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "datetime",
+                    "description": "The timestamp of the grant."
+                }
+            }
+        }
+    }
+}

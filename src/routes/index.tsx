@@ -1,26 +1,16 @@
-import {
-	Await,
-	createFileRoute,
-	getRouteApi,
-	Link,
-} from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { type Bloom, BloomCard } from "#/components/BloomCard";
-import { listBlooms } from "#/server/blooms/feed";
+import { BloomFeed } from "#/components/BloomFeed";
+import { DotPulse } from "#/components/DotPulse";
 
 const rootApi = getRouteApi("__root__");
 
 export const Route = createFileRoute("/")({
-	loader: () => ({
-		bloomsPromise: listBlooms({ data: { sort: "pollen", limit: 20 } }),
-	}),
 	component: Landing,
 });
 
 function Landing() {
-	const { did } = rootApi.useLoaderData();
-	const { bloomsPromise } = Route.useLoaderData();
-	const loggedIn = Boolean(did);
+	rootApi.useLoaderData();
 
 	return (
 		<main className="px-6 pb-28 pt-16 sm:pt-24">
@@ -48,37 +38,10 @@ function Landing() {
 					<p className="masthead-kicker">Blooms · in season</p>
 					<h1 className="bloom-feed-title">Stories blooming now</h1>
 				</header>
-				<Suspense fallback={<BloomFeedFallback />}>
-					<Await promise={bloomsPromise}>
-						{(blooms) => <BloomFeed blooms={blooms} loggedIn={loggedIn} />}
-					</Await>
+				<Suspense fallback={<DotPulse />}>
+					<BloomFeed sort="pollen" limit={20} />
 				</Suspense>
 			</section>
 		</main>
 	);
-}
-
-function BloomFeed({
-	blooms,
-	loggedIn,
-}: {
-	blooms: Array<Bloom>;
-	loggedIn: boolean;
-}) {
-	if (blooms.length === 0) {
-		return <p className="bloom-feed-empty">No blooms yet. Check back later.</p>;
-	}
-	return (
-		<ul className="bloom-grid">
-			{blooms.map((bloom) => (
-				<li key={bloom.uri}>
-					<BloomCard bloom={bloom} loggedIn={loggedIn} />
-				</li>
-			))}
-		</ul>
-	);
-}
-
-function BloomFeedFallback() {
-	return <p className="bloom-feed-empty">Gathering today&rsquo;s blooms…</p>;
 }

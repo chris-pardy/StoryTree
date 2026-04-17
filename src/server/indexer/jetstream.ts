@@ -13,12 +13,20 @@ import {
 	processBudUpdate,
 	processPollenCreate,
 	processPollenDelete,
+	processSeedCreate,
+	processSeedDelete,
+	processSeedUpdate,
 } from "./process.ts";
 
 export const BUD_COLLECTION = "ink.branchline.bud";
 export const POLLEN_COLLECTION = "ink.branchline.pollen";
+export const SEED_COLLECTION = "ink.branchline.seed";
 
-const WANTED_COLLECTIONS = [BUD_COLLECTION, POLLEN_COLLECTION] as const;
+const WANTED_COLLECTIONS = [
+	BUD_COLLECTION,
+	POLLEN_COLLECTION,
+	SEED_COLLECTION,
+] as const;
 
 // Singleton key for the persisted cursor row.
 const CURSOR_ID = "jetstream";
@@ -95,6 +103,16 @@ async function dispatch(
 				return processPollenDelete(event as JetstreamCommitDelete, deps);
 			case "update":
 				return { accepted: false, reason: "pollen-update-not-supported" };
+		}
+	}
+	if (collection === SEED_COLLECTION) {
+		switch (operation) {
+			case "create":
+				return processSeedCreate(event as JetstreamCommitCreate, deps);
+			case "update":
+				return processSeedUpdate(event as JetstreamCommitUpdate, deps);
+			case "delete":
+				return processSeedDelete(event as JetstreamCommitDelete, deps);
 		}
 	}
 	return null;

@@ -36,7 +36,7 @@
               "type": "array",
               "items": {
                 "type": "ref",
-                "ref": "#budView"
+                "ref": "#bloomView"
               }
             },
             "cursor": {
@@ -47,29 +47,19 @@
         }
       }
     },
-    "budView": {
+    "bloomView": {
       "type": "object",
-      "required": ["uri", "title", "author", "createdAt", "pollenCount"],
+      "required": ["bloom", "root"],
       "properties": {
-        "uri": {
+        "bloom": {
           "type": "string",
-          "format": "at-uri"
+          "format": "at-uri",
+          "description": "The bloom AT-URI."
         },
-        "title": {
-          "type": "string"
-        },
-        "author": {
+        "root": {
           "type": "string",
-          "format": "did"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "datetime"
-        },
-        "pollenCount": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Lifetime raw pollen count on this bud."
+          "format": "at-uri",
+          "description": "The root AT-URI this bloom descends from."
         }
       }
     }

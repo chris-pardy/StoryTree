@@ -1,0 +1,34 @@
+.dot-pulse {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	padding: 1.5rem 0;
+}
+
+.dot-pulse-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--sea-ink-soft);
+	opacity: 0.35;
+	animation: dot-pulse-fade 1.2s ease-in-out infinite;
+}
+
+.dot-pulse-dot:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+.dot-pulse-dot:nth-child(3) {
+	animation-delay: 0.3s;
+}
+
+@keyframes dot-pulse-fade {
+	0%,
+	100% {
+		opacity: 0.2;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}

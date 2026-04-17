@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.getBranch",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the full path of AT-URIs from root to bud in story order, oldest first.",
+      "parameters": {
+        "type": "params",
+        "required": ["bud"],
+        "properties": {
+          "bud": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the bud at the end of this branch."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["buds"],
+          "properties": {
+            "buds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "at-uri"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
