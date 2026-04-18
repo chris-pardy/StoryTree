@@ -27,6 +27,7 @@ export type BudParentLookup = {
 	// "Anonymous"), so the self-reply check just won't fire.
 	authorDid: string | null;
 	bloomsAt: Date;
+	locked: boolean;
 };
 
 export type SeedParentLookup = {
@@ -61,6 +62,7 @@ export type BudCreateRejection =
 	| "parent-not-found"
 	| "parent-cid-mismatch"
 	| "self-reply"
+	| "parent-locked"
 	| "parent-growing"
 	| "not-seed-grantee"
 	| "seed-expired"
@@ -125,6 +127,10 @@ export function validateBudCreate(
 	if (parent.kind === "bud") {
 		if (parent.authorDid === authorDid) {
 			return { ok: false, reason: "self-reply" };
+		}
+
+		if (parent.locked) {
+			return { ok: false, reason: "parent-locked" };
 		}
 
 		if (now.getTime() < parent.bloomsAt.getTime()) {

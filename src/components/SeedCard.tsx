@@ -15,10 +15,11 @@ import { publishSeed } from "#/server/seeds/publish";
 import { AuthorLink } from "./AuthorLink";
 import { type GiftExpiry, SeedGiftPanel } from "./SeedGiftPanel";
 
-const EXPIRY_MS: Record<GiftExpiry, number> = {
+const EXPIRY_MS: Record<GiftExpiry, number | null> = {
 	"1w": 7 * 24 * 60 * 60 * 1000,
 	"1m": 30 * 24 * 60 * 60 * 1000,
 	"1y": 365 * 24 * 60 * 60 * 1000,
+	never: null,
 };
 
 type Mode = "idle" | "gift" | "plant";
@@ -90,7 +91,10 @@ export function SeedCard({
 		setGiftSaving(true);
 		setGiftError(null);
 		try {
-			const expiresAt = new Date(Date.now() + EXPIRY_MS[expiry]).toISOString();
+			const ms = EXPIRY_MS[expiry];
+			const expiresAt = ms
+				? new Date(Date.now() + ms).toISOString()
+				: undefined;
 			await publishSeed({
 				data: {
 					grantor: seed.uri,

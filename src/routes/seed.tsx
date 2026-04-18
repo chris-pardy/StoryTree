@@ -5,9 +5,14 @@ import { AuthorPlantingsList } from "#/components/AuthorPlantingsList";
 import { AuthorSeedsList } from "#/components/AuthorSeedsList";
 import { useViewerDid } from "#/components/auth/gates";
 import { DotPulse } from "#/components/DotPulse";
+import { GrantSeedCard } from "#/components/GrantSeedCard";
 import { PillTabs } from "#/components/PillTabs";
+import { checkPermissions } from "#/server/admin";
 
-export const Route = createFileRoute("/seed")({ component: SeedPage });
+export const Route = createFileRoute("/seed")({
+	component: SeedPage,
+	loader: () => checkPermissions(),
+});
 
 type Tab = "ready" | "rooted";
 
@@ -18,6 +23,7 @@ const SEED_TABS = [
 
 function SeedPage() {
 	const viewerDid = useViewerDid();
+	const { canGrantSeeds } = Route.useLoaderData();
 	const [tab, setTab] = useState<Tab>("ready");
 
 	const kicker = tab === "ready" ? "Ready to plant" : "Already rooted";
@@ -39,6 +45,20 @@ function SeedPage() {
 					</p>
 				</header>
 			</section>
+
+			{canGrantSeeds && (
+				<section className="bloom-feed">
+					<header className="bloom-feed-masthead rise-in">
+						<p className="masthead-kicker">Admin</p>
+						<h2 className="bloom-feed-title">Grant seeds</h2>
+					</header>
+					<ul className="bloom-grid">
+						<li>
+							<GrantSeedCard />
+						</li>
+					</ul>
+				</section>
+			)}
 
 			<section className="bloom-feed">
 				<header className="bloom-feed-masthead rise-in">

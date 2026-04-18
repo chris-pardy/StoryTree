@@ -1,12 +1,13 @@
 import type { SearchedActor } from "#/queries/handle-search";
 import { HandleSearch } from "./HandleSearch";
 
-export type GiftExpiry = "1w" | "1m" | "1y";
+export type GiftExpiry = "1w" | "1m" | "1y" | "never";
 
 const EXPIRY_OPTIONS: ReadonlyArray<{ value: GiftExpiry; label: string }> = [
 	{ value: "1w", label: "1 week" },
 	{ value: "1m", label: "1 month" },
 	{ value: "1y", label: "1 year" },
+	{ value: "never", label: "No expiry" },
 ];
 
 export function SeedGiftPanel({

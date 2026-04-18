@@ -30,6 +30,7 @@ const parentRow: ParentLookup = {
 	cid: "bafyparent",
 	authorDid: OTHER,
 	bloomsAt: new Date(NOW.getTime() - 1000),
+	locked: false,
 };
 
 const childRecord: BudRecord = {
@@ -123,6 +124,17 @@ describe("validateBudCreate", () => {
 					authorDid: OTHER,
 				}),
 			).toEqual({ ok: false, reason: "self-reply" });
+		});
+
+		it("rejects a bud when the parent is locked", () => {
+			const lockedParent: ParentLookup = {
+				...parentRow,
+				locked: true,
+			};
+			expect(validateBudCreate({ ...baseArgs, parent: lockedParent })).toEqual({
+				ok: false,
+				reason: "parent-locked",
+			});
 		});
 
 		it("rejects a bud when the parent has not yet bloomed", () => {

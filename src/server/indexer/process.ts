@@ -55,10 +55,6 @@ export type JetstreamCommitDelete = CommitBase & {
 
 export type ProcessDeps = {
 	prisma: PrismaClient;
-	// Allow-list gate for creating grantor-less (root) seeds. In production
-	// this is the single DID for the branchline.ink repo; anyone else must
-	// chain from an existing grant.
-	isAllowedSeedAuthor: (did: string) => boolean;
 	now: () => Date;
 };
 
@@ -68,6 +64,7 @@ export type ResolvedBudParent = {
 	cid: string;
 	authorDid: string | null;
 	bloomsAt: Date;
+	locked: boolean;
 	rootUri: string;
 	depth: number;
 	pathUris: Array<string>;
@@ -95,6 +92,7 @@ export function resolvedParentToLookup(parent: ResolvedParent): ParentLookup {
 			cid: parent.cid,
 			authorDid: parent.authorDid,
 			bloomsAt: parent.bloomsAt,
+			locked: parent.locked,
 		};
 	}
 	return {
@@ -122,6 +120,7 @@ export async function resolveBudParent(
 			cid: budRow.cid,
 			authorDid: budRow.authorDid,
 			bloomsAt: budRow.bloomsAt,
+			locked: budRow.locked,
 			rootUri: budRow.rootUri,
 			depth: budRow.depth,
 			pathUris: budRow.pathUris,
@@ -350,7 +349,7 @@ export async function processSeedCreate(
 	event: JetstreamCommitCreate,
 	deps: ProcessDeps,
 ): Promise<ProcessResult> {
-	const { prisma, isAllowedSeedAuthor, now } = deps;
+	const { prisma, now } = deps;
 	const { did, commit } = event;
 	const uri = makeAtUri(did, commit.collection, commit.rkey);
 	const record = commit.record as SeedRecord;
@@ -361,6 +360,17 @@ export async function processSeedCreate(
 				include: { child: { select: { uri: true } } },
 			})
 		: null;
+
+	// For root seeds (no grantor), check the Permission table to see if
+	// this DID is allowed to create them.
+	let isAllowedRoot = false;
+	if (!record.grantor) {
+		const perm = await prisma.permission.findUnique({
+			where: { did },
+			select: { canGrantSeeds: true },
+		});
+		isAllowedRoot = perm?.canGrantSeeds === true;
+	}
 
 	const result = validateSeedCreate({
 		record,
@@ -374,7 +384,7 @@ export async function processSeedCreate(
 					hasChild: grantor.child !== null && grantor.child.uri !== uri,
 				}
 			: null,
-		isAllowedRoot: !record.grantor && isAllowedSeedAuthor(did),
+		isAllowedRoot,
 		now: now(),
 	});
 

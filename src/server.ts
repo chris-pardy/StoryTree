@@ -8,10 +8,12 @@ import {
 	bootJetstreamSubscriber,
 	stopJetstreamSubscriber,
 } from "./server/indexer/boot.ts";
+import { bootstrapPermissions } from "./server/permissions.ts";
 
 // Runs once per server boot. In dev (vite) this module is re-evaluated on
 // HMR, but the boot helper is idempotent — the dispose hook below tears down
 // the previous subscriber before the new one starts.
+bootstrapPermissions().catch((err) => console.error("[permissions]", err));
 bootJetstreamSubscriber();
 
 if (import.meta.hot) {

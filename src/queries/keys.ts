@@ -9,4 +9,5 @@ export const queryKeys = {
 		["authorSeeds", { actor, limit }] as const,
 	authorPlantings: (actor: string, limit: number) =>
 		["authorPlantings", { actor, limit }] as const,
+	profilePermissions: (did: string) => ["profilePermissions", did] as const,
 };

@@ -1,4 +1,5 @@
 import { prisma } from "../../db.ts";
+import { bootstrapPermissions } from "../permissions.ts";
 import { startJetstreamSubscriber } from "./jetstream.ts";
 
 declare global {
@@ -20,12 +21,9 @@ export function bootJetstreamSubscriber(): void {
 	if (flyGroup && flyGroup !== "indexer") return;
 	if (globalThis.__jetstreamStop) return;
 
-	const ALLOWED_SEED_AUTHORS = new Set<string>(
-		(process.env.BRANCHLINE_ALLOWED_SEED_AUTHORS ?? "")
-			.split(",")
-			.map((s) => s.trim())
-			.filter(Boolean),
-	);
+	// Ensure env-var-bootstrapped admins have Permission rows before the
+	// subscriber starts processing seed-create events.
+	bootstrapPermissions().catch((err) => console.error("[permissions]", err));
 
 	const url = process.env.JETSTREAM_URL ?? "ws://localhost:6010/subscribe";
 
@@ -33,7 +31,6 @@ export function bootJetstreamSubscriber(): void {
 		url,
 		deps: {
 			prisma,
-			isAllowedSeedAuthor: (did) => ALLOWED_SEED_AUTHORS.has(did),
 			now: () => new Date(),
 		},
 		onError: (err) => console.error("[indexer]", err),

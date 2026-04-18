@@ -129,6 +129,19 @@ model IndexerCursor {
   timeUs BigInt
 }
 
+// Per-DID permission flags. Created at bootstrap from the
+// BRANCHLINE_ALLOWED_SEED_AUTHORS env var (one-time seed) and then managed
+// entirely through the UI by users with canGrantPermissions.
+model Permission {
+  did                 String   @id
+  canGrantSeeds       Boolean  @default(false)
+  canDeleteBuds       Boolean  @default(false)
+  canLockBuds         Boolean  @default(false)
+  canGrantPermissions Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
 // did -> handle cache. Filled by src/server/identity/resolve.ts.
 // `verified=true` means the DID-doc handle was confirmed by resolving the
 // handle back to the same DID. `verified=false` is a negative entry: we

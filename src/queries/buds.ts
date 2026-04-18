@@ -40,6 +40,8 @@ function fetchBudBatched(uri: string): Promise<BudView> {
 	});
 }
 
+const BATCH_LIMIT = 25;
+
 async function flushBatch() {
 	const batch = new Map(pending);
 	pending.clear();
@@ -48,7 +50,8 @@ async function flushBatch() {
 	try {
 		let remaining = [...batch.keys()];
 		while (remaining.length > 0) {
-			const buds = await fetchBuds(remaining);
+			const chunk = remaining.slice(0, BATCH_LIMIT);
+			const buds = await fetchBuds(chunk);
 			for (const bud of buds) {
 				const waiters = batch.get(bud.uri);
 				if (waiters) {

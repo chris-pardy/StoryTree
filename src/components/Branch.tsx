@@ -57,7 +57,7 @@ export function Branch({ uri }: { uri: string }) {
 				))}
 			</ol>
 
-			{allBudsLoaded && leafBud && (
+			{allBudsLoaded && leafBud && !leafBud.locked && (
 				<ContinueStory
 					parentUri={uri}
 					parentAuthor={leafBud.author?.did}

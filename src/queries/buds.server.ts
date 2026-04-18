@@ -60,8 +60,7 @@ export async function getBuds(
 	viewerDid?: string | null,
 ): Promise<GetBuds.OutputSchema> {
 	if (params.uris.length === 0) return { buds: [] };
-	if (params.uris.length > 25) throw new Error("Maximum 25 URIs per request");
-	const buds = await hydrateBuds(params.uris, viewerDid);
+	const buds = await hydrateBuds(params.uris.slice(0, 25), viewerDid);
 	return { buds };
 }
 

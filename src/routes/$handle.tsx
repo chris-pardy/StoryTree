@@ -6,8 +6,10 @@ import { AuthorLink } from "#/components/AuthorLink";
 import { AuthorPlantingsList } from "#/components/AuthorPlantingsList";
 import { BudCard } from "#/components/BudCard";
 import { DotPulse } from "#/components/DotPulse";
+import { PermissionPanel } from "#/components/PermissionPanel";
 import { PillTabs } from "#/components/PillTabs";
 import { authorBudsQuery } from "#/queries/author-buds";
+import { checkPermissions } from "#/server/admin";
 import { resolveProfileActor } from "#/server/identity/profile-actor";
 
 const rootApi = getRouteApi("__root__");
@@ -21,14 +23,16 @@ const PROFILE_TABS = [
 
 export const Route = createFileRoute("/$handle")({
 	loader: async ({ params }) => {
-		const actor = await resolveProfileActor({
-			data: { param: params.handle },
-		});
+		const [actor, viewerPerms] = await Promise.all([
+			resolveProfileActor({ data: { param: params.handle } }),
+			checkPermissions(),
+		]);
 		if (!actor) throw notFound();
 		return {
 			did: actor.did,
 			handle: actor.handle,
 			displayName: actor.displayName,
+			canGrantPermissions: viewerPerms.canGrantPermissions,
 		};
 	},
 	head: ({ loaderData }) => {
@@ -41,7 +45,8 @@ export const Route = createFileRoute("/$handle")({
 
 function Profile() {
 	rootApi.useLoaderData();
-	const { did, handle, displayName } = Route.useLoaderData();
+	const { did, handle, displayName, canGrantPermissions } =
+		Route.useLoaderData();
 	const isDid = handle.startsWith("did:");
 	const atHandle = isDid ? handle : `@${handle}`;
 	const primary = displayName ?? atHandle;
@@ -71,6 +76,7 @@ function Profile() {
 						</p>
 					)}
 				</header>
+				{canGrantPermissions && <PermissionPanel did={did} />}
 			</section>
 
 			<section className="bloom-feed">

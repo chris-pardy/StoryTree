@@ -1,0 +1,73 @@
+.permission-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.9rem 1rem;
+	border: 1px dashed color-mix(in oklab, var(--line) 55%, transparent);
+	border-radius: 12px;
+	background: color-mix(in oklab, var(--sand) 30%, transparent);
+}
+
+.permission-panel-kicker {
+	margin: 0;
+	font-family: var(--font-sans);
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--kicker);
+}
+
+.permission-panel-flags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+.permission-pill {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	padding: 0.22rem 0.7rem;
+	border: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
+	border-radius: 999px;
+	background: transparent;
+	color: var(--sea-ink-soft);
+	font-family: var(--font-sans);
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition:
+		background-color 240ms ease,
+		color 240ms ease,
+		border-color 240ms ease;
+}
+
+.permission-pill:hover {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 45%, transparent);
+}
+
+.permission-pill.is-active {
+	color: var(--lagoon-deep);
+	border-color: color-mix(in oklab, var(--lagoon-deep) 50%, transparent);
+	background: color-mix(in oklab, var(--lagoon-deep) 10%, transparent);
+}
+
+.permission-pill:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.permission-panel-error {
+	margin: 0;
+	padding: 0.4rem 0.75rem;
+	border-radius: 8px;
+	background: color-mix(in oklab, var(--sea-ink) 6%, transparent);
+	color: var(--sea-ink);
+	font-family: var(--font-sans);
+	font-size: 0.78rem;
+	line-height: 1.3;
+}
