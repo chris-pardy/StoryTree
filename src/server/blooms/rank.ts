@@ -73,6 +73,7 @@ export async function rankBlooms(opts: {
              b.title, b.text, b."authorDid", b."rootUri"
       FROM "Bud" b
       WHERE b."bloomsAt" <= NOW()
+        AND b."authorDid" IS NOT NULL
         AND (
           b."bloomsAt" > NOW() - ${intervalSql(FOLLOW_WINDOW_HOURS)}
           OR NOT EXISTS (

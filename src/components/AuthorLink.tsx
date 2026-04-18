@@ -15,11 +15,16 @@ export function AuthorLink({
 	displayName,
 	className,
 }: {
-	did: string;
+	did?: string | null;
 	handle?: string;
 	displayName?: string;
 	className?: string;
 }) {
+	// A null/undefined DID means the bud has been soft-deleted by its
+	// author. Render an inert "Anonymous" label rather than a profile link.
+	if (!did) {
+		return <span className={className}>Anonymous</span>;
+	}
 	// Profile route accepts either a handle or a raw DID; prefer the handle
 	// so the URL is stable + human-readable.
 	const param = handle ?? did;

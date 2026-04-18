@@ -6,7 +6,7 @@ import { resolveHandles } from "../identity/resolve";
 type BudRow = {
 	uri: string;
 	cid: string;
-	authorDid: string;
+	authorDid: string | null;
 	parentUri: string | null;
 	parentCid: string | null;
 	title: string;
@@ -28,15 +28,17 @@ function rowToBudView(
 		{ handle: string | null; displayName: string | null }
 	>,
 ): GetBuds.BudView {
-	const actor = handles.get(row.authorDid);
+	const actor = row.authorDid ? handles.get(row.authorDid) : undefined;
 	return {
 		uri: row.uri,
 		cid: row.cid,
-		author: {
-			did: row.authorDid,
-			handle: actor?.handle ?? row.authorDid,
-			displayName: actor?.displayName ?? undefined,
-		},
+		author: row.authorDid
+			? {
+					did: row.authorDid,
+					handle: actor?.handle ?? row.authorDid,
+					displayName: actor?.displayName ?? undefined,
+				}
+			: undefined,
 		title: row.title,
 		text: row.text,
 		parent: row.parentUri
@@ -92,7 +94,9 @@ export async function hydrateBuds(uris: string[]): Promise<GetBuds.BudView[]> {
   `);
 
 	const rowsByUri = new Map(rows.map((r) => [r.uri, r]));
-	const handles = await resolveHandles(rows.map((r) => r.authorDid));
+	const handles = await resolveHandles(
+		rows.flatMap((r) => (r.authorDid ? [r.authorDid] : [])),
+	);
 
 	const buds: GetBuds.BudView[] = [];
 	for (const uri of uris) {

@@ -30,7 +30,7 @@ async function deletePollen(subjectUri: string) {
 
 export function usePollination(
 	subjectUri: string,
-	authorDid: string,
+	authorDid: string | null | undefined,
 	initialCount: number,
 	initialPollinated?: boolean,
 ) {

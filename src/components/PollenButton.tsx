@@ -7,7 +7,7 @@ export function PollenButton({
 }: {
 	bud: {
 		uri: string;
-		author: { did: string; displayName?: string; handle: string };
+		author?: { did: string; displayName?: string; handle: string };
 		pollenCount: number;
 		viewerPollinated?: boolean;
 	};
@@ -15,13 +15,16 @@ export function PollenButton({
 	const { canPollinate, pollinated, count, saving, errorMessage, toggle } =
 		usePollination(
 			bud.uri,
-			bud.author.did,
+			bud.author?.did,
 			bud.pollenCount,
 			bud.viewerPollinated,
 		);
 
 	const authorLabel =
-		bud.author.displayName ?? bud.author.handle ?? bud.author.did;
+		bud.author?.displayName ??
+		bud.author?.handle ??
+		bud.author?.did ??
+		"Anonymous";
 	const label = errorMessage
 		? `Could not pollinate: ${errorMessage}`
 		: `${pollinated ? "Pollinated" : "Pollinate"} ${authorLabel}'s bud`;

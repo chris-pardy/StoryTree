@@ -24,8 +24,8 @@ export const Route = createFileRoute("/og/bud/$")({
 
 				const png = await renderBudOgPng({
 					title: bud.title,
-					authorDisplayName: bud.author.displayName ?? null,
-					authorHandle: bud.author.handle,
+					authorDisplayName: bud.author?.displayName ?? null,
+					authorHandle: bud.author?.handle ?? "anonymous",
 					childCount: bud.children?.length ?? 0,
 					pollenCount: bud.pollenCount,
 				});

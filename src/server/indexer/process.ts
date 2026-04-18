@@ -66,7 +66,7 @@ export type ResolvedBudParent = {
 	kind: "bud";
 	uri: string;
 	cid: string;
-	authorDid: string;
+	authorDid: string | null;
 	bloomsAt: Date;
 	rootUri: string;
 	depth: number;
@@ -190,7 +190,6 @@ async function loadExisting(prisma: PrismaClient, uri: string) {
 	return {
 		uri: row.uri,
 		authorDid: row.authorDid,
-		bloomsAt: row.bloomsAt,
 		childCount: row._count.children,
 	};
 }
@@ -265,7 +264,7 @@ export async function processBudUpdate(
 	event: JetstreamCommitUpdate,
 	deps: ProcessDeps,
 ): Promise<ProcessResult> {
-	const { prisma, now } = deps;
+	const { prisma } = deps;
 	const { did, commit } = event;
 	const uri = makeAtUri(did, commit.collection, commit.rkey);
 	const record = commit.record as BudRecord;
@@ -276,7 +275,6 @@ export async function processBudUpdate(
 		record,
 		authorDid: did,
 		existing,
-		now: now(),
 	});
 
 	if (!result.ok) {
@@ -309,7 +307,7 @@ export async function processBudDelete(
 	event: JetstreamCommitDelete,
 	deps: ProcessDeps,
 ): Promise<ProcessResult> {
-	const { prisma, now } = deps;
+	const { prisma } = deps;
 	const { did, commit } = event;
 	const uri = makeAtUri(did, commit.collection, commit.rkey);
 
@@ -318,14 +316,32 @@ export async function processBudDelete(
 	const result = validateBudDelete({
 		authorDid: did,
 		existing,
-		now: now(),
 	});
 
 	if (!result.ok) {
 		return { accepted: false, reason: result.reason };
 	}
 
-	await prisma.bud.delete({ where: { uri } });
+	// Hard delete when no one has branched off (pollen cascades via FK).
+	// Otherwise soft-delete: keep the row so descendants stay attached, but
+	// null the author and wipe content; pollen has to be removed explicitly
+	// because the bud row itself isn't going away.
+	if (existing && existing.childCount === 0) {
+		await prisma.bud.delete({ where: { uri } });
+	} else {
+		await prisma.$transaction(async (tx) => {
+			await tx.pollen.deleteMany({ where: { subjectUri: uri } });
+			await tx.bud.update({
+				where: { uri },
+				data: {
+					authorDid: null,
+					title: "",
+					text: "",
+					formatting: Prisma.DbNull,
+				},
+			});
+		});
+	}
 
 	return { accepted: true };
 }

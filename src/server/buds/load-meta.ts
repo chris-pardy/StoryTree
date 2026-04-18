@@ -26,8 +26,8 @@ export const loadBudMeta = createServerFn({ method: "GET" })
 		return {
 			title: bud.title,
 			preview: (bud.text ?? "").slice(0, TEXT_PREVIEW_LIMIT),
-			authorDisplayName: bud.author.displayName ?? null,
-			authorHandle: bud.author.handle,
+			authorDisplayName: bud.author?.displayName ?? null,
+			authorHandle: bud.author?.handle ?? "anonymous",
 			publicUrl: getPublicUrl(),
 		};
 	});

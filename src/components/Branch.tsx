@@ -60,7 +60,7 @@ export function Branch({ uri }: { uri: string }) {
 			{allBudsLoaded && leafBud && (
 				<ContinueStory
 					parentUri={uri}
-					parentAuthor={leafBud.author.did}
+					parentAuthor={leafBud.author?.did}
 					onPublished={(newUri) => {
 						// Seed the reading-position so the new branch mounts scrolled
 						// to the freshly-published bud (the hook picks the last entry

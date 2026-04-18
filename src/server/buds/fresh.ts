@@ -7,7 +7,7 @@ import { type ResolvedActor, resolveHandles } from "../identity/resolve";
 type FreshRow = {
 	uri: string;
 	title: string;
-	authorDid: string;
+	authorDid: string | null;
 	createdAt: Date;
 	pollenCount: number;
 };
@@ -16,7 +16,7 @@ function toBud(
 	row: FreshRow,
 	handles: ReadonlyMap<string, ResolvedActor>,
 ): Bud {
-	const actor = handles.get(row.authorDid);
+	const actor = row.authorDid ? handles.get(row.authorDid) : undefined;
 	return {
 		uri: row.uri,
 		title: row.title,
@@ -62,9 +62,12 @@ export const listFreshBuds = createServerFn({ method: "GET" })
         AND b.uri <> ${ancestorUri}
         ${excludeClause}
         AND b."bloomsAt" > NOW()
+        AND b."authorDid" IS NOT NULL
       ORDER BY b."createdAt" DESC
       LIMIT ${limit}
     `);
-		const handles = await resolveHandles(rows.map((r) => r.authorDid));
+		const handles = await resolveHandles(
+			rows.flatMap((r) => (r.authorDid ? [r.authorDid] : [])),
+		);
 		return rows.map((r) => toBud(r, handles));
 	});

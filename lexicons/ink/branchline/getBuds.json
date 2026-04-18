@@ -61,7 +61,6 @@
       "required": [
         "uri",
         "cid",
-        "author",
         "title",
         "text",
         "createdAt",

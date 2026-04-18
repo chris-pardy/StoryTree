@@ -1,3 +1,4 @@
+import "./BloomCard.css";
 import "./BudCard.css";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -33,7 +34,11 @@ export function BudCard({
 
 	const splat = parseBudSplat(uri);
 	const showRoot = root && rootUri && rootUri !== uri;
-	const sameAuthor = showRoot && root.author.did === bud.author.did;
+	const sameAuthor =
+		showRoot &&
+		!!root.author &&
+		!!bud.author &&
+		root.author.did === bud.author.did;
 
 	return (
 		<article className="bloom-card rise-in">
@@ -62,18 +67,18 @@ export function BudCard({
 			<p className="bloom-card-authors">
 				by{" "}
 				<AuthorLink
-					did={bud.author.did}
-					handle={bud.author.handle}
-					displayName={bud.author.displayName}
+					did={bud.author?.did}
+					handle={bud.author?.handle}
+					displayName={bud.author?.displayName}
 					className="bloom-card-handle"
 				/>
 				{showRoot && !sameAuthor && (
 					<>
 						,{" "}
 						<AuthorLink
-							did={root.author.did}
-							handle={root.author.handle}
-							displayName={root.author.displayName}
+							did={root.author?.did}
+							handle={root.author?.handle}
+							displayName={root.author?.displayName}
 							className="bloom-card-handle"
 						/>
 					</>

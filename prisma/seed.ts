@@ -41,7 +41,7 @@ const AUTHORS = [DEMO_DID, FRIEND_DID]
 type BudRow = {
   uri: string
   cid: string
-  authorDid: string
+  authorDid: string | null
   rootUri: string
   parentUri: string | null
   parentCid: string | null

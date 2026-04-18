@@ -139,7 +139,7 @@ export function ContinueStory({
 }: {
 	onPublished: (uri: string) => void;
 	parentUri: string;
-	parentAuthor: string;
+	parentAuthor: string | null | undefined;
 }) {
 	const [writing, setWriting] = useState(false);
 	const [saving, setSaving] = useState(false);

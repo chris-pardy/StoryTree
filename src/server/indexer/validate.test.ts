@@ -120,7 +120,7 @@ describe("validateBudCreate", () => {
 			expect(
 				validateBudCreate({
 					...baseArgs,
-					authorDid: parentRow.authorDid,
+					authorDid: OTHER,
 				}),
 			).toEqual({ ok: false, reason: "self-reply" });
 		});
@@ -237,7 +237,6 @@ const BUD_URI = "at://did:plc:author/ink.branchline.bud/abc";
 const existingFresh: ExistingBud = {
 	uri: BUD_URI,
 	authorDid: AUTHOR,
-	bloomsAt: new Date(NOW.getTime() + 1000),
 	childCount: 0,
 };
 
@@ -248,13 +247,12 @@ const updatedRecord: BudRecord = {
 };
 
 describe("validateBudUpdate", () => {
-	it("accepts an in-window edit by the original author", () => {
+	it("accepts an edit by the original author with no descendants", () => {
 		expect(
 			validateBudUpdate({
 				record: updatedRecord,
 				authorDid: AUTHOR,
 				existing: existingFresh,
-				now: NOW,
 			}),
 		).toEqual({ ok: true });
 	});
@@ -265,7 +263,6 @@ describe("validateBudUpdate", () => {
 				record: updatedRecord,
 				authorDid: AUTHOR,
 				existing: null,
-				now: NOW,
 			}),
 		).toEqual({ ok: false, reason: "bud-not-found" });
 	});
@@ -276,24 +273,8 @@ describe("validateBudUpdate", () => {
 				record: updatedRecord,
 				authorDid: OTHER,
 				existing: existingFresh,
-				now: NOW,
 			}),
 		).toEqual({ ok: false, reason: "author-mismatch" });
-	});
-
-	it("rejects an edit when bloomsAt has passed", () => {
-		const expired: ExistingBud = {
-			...existingFresh,
-			bloomsAt: new Date(NOW.getTime()),
-		};
-		expect(
-			validateBudUpdate({
-				record: updatedRecord,
-				authorDid: AUTHOR,
-				existing: expired,
-				now: NOW,
-			}),
-		).toEqual({ ok: false, reason: "edit-window-closed" });
 	});
 
 	it("rejects an edit when descendants already exist", () => {
@@ -306,7 +287,6 @@ describe("validateBudUpdate", () => {
 				record: updatedRecord,
 				authorDid: AUTHOR,
 				existing: withChildren,
-				now: NOW,
 			}),
 		).toEqual({ ok: false, reason: "has-children" });
 	});
@@ -321,19 +301,17 @@ describe("validateBudUpdate", () => {
 				record: { ...updatedRecord, text: tooLong },
 				authorDid: AUTHOR,
 				existing: existingFresh,
-				now: NOW,
 			}),
 		).toEqual({ ok: false, reason: "word-limit-exceeded" });
 	});
 });
 
 describe("validateBudDelete", () => {
-	it("accepts an in-window delete by the original author", () => {
+	it("accepts a delete by the original author with no descendants", () => {
 		expect(
 			validateBudDelete({
 				authorDid: AUTHOR,
 				existing: existingFresh,
-				now: NOW,
 			}),
 		).toEqual({ ok: true });
 	});
@@ -343,7 +321,6 @@ describe("validateBudDelete", () => {
 			validateBudDelete({
 				authorDid: AUTHOR,
 				existing: null,
-				now: NOW,
 			}),
 		).toEqual({ ok: false, reason: "bud-not-found" });
 	});
@@ -353,26 +330,11 @@ describe("validateBudDelete", () => {
 			validateBudDelete({
 				authorDid: OTHER,
 				existing: existingFresh,
-				now: NOW,
 			}),
 		).toEqual({ ok: false, reason: "author-mismatch" });
 	});
 
-	it("rejects a delete when bloomsAt has passed", () => {
-		const expired: ExistingBud = {
-			...existingFresh,
-			bloomsAt: new Date(NOW.getTime()),
-		};
-		expect(
-			validateBudDelete({
-				authorDid: AUTHOR,
-				existing: expired,
-				now: NOW,
-			}),
-		).toEqual({ ok: false, reason: "delete-window-closed" });
-	});
-
-	it("rejects a delete when descendants already exist", () => {
+	it("accepts a delete even when descendants already exist (soft-delete path)", () => {
 		const withChildren: ExistingBud = {
 			...existingFresh,
 			childCount: 1,
@@ -381,9 +343,21 @@ describe("validateBudDelete", () => {
 			validateBudDelete({
 				authorDid: AUTHOR,
 				existing: withChildren,
-				now: NOW,
 			}),
-		).toEqual({ ok: false, reason: "has-children" });
+		).toEqual({ ok: true });
+	});
+
+	it("rejects a delete on an already-soft-deleted bud", () => {
+		const anonymized: ExistingBud = {
+			...existingFresh,
+			authorDid: null,
+		};
+		expect(
+			validateBudDelete({
+				authorDid: AUTHOR,
+				existing: anonymized,
+			}),
+		).toEqual({ ok: false, reason: "author-mismatch" });
 	});
 });
 
@@ -441,7 +415,7 @@ describe("validatePollenCreate", () => {
 		expect(
 			validatePollenCreate({
 				record: pollenRecord,
-				authorDid: subjectRow.authorDid,
+				authorDid: OTHER,
 				subject: subjectRow,
 				hasExistingPollen: false,
 			}),

@@ -10,7 +10,10 @@ datasource db {
 model Bud {
   uri        String   @id
   cid        String
-  authorDid  String
+  // Nullable so a delete can soft-delete (anonymise) a bud whose
+  // descendants would otherwise be orphaned. The bud's URI still
+  // embeds the original DID; this column is what the UI reads.
+  authorDid  String?
   rootUri    String
   parentUri  String?
   parentCid  String?

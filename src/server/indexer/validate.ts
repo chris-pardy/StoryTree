@@ -22,7 +22,10 @@ export type BudParentLookup = {
 	kind: "bud";
 	uri: string;
 	cid: string;
-	authorDid: string;
+	// Null when the parent has been soft-deleted; replies to anonymous buds
+	// are still permitted (the tree structure is intact, the byline is just
+	// "Anonymous"), so the self-reply check just won't fire.
+	authorDid: string | null;
 	bloomsAt: Date;
 };
 
@@ -44,8 +47,7 @@ export type ParentLookup = BudParentLookup | SeedParentLookup;
 
 export type ExistingBud = {
 	uri: string;
-	authorDid: string;
-	bloomsAt: Date;
+	authorDid: string | null;
 	childCount: number;
 };
 
@@ -69,14 +71,9 @@ export type BudUpdateRejection =
 	| "word-limit-exceeded"
 	| "bud-not-found"
 	| "author-mismatch"
-	| "edit-window-closed"
 	| "has-children";
 
-export type BudDeleteRejection =
-	| "bud-not-found"
-	| "author-mismatch"
-	| "delete-window-closed"
-	| "has-children";
+export type BudDeleteRejection = "bud-not-found" | "author-mismatch";
 
 export type PollenRecord = {
 	subject: StrongRef;
@@ -86,7 +83,9 @@ export type PollenRecord = {
 export type SubjectLookup = {
 	uri: string;
 	cid: string;
-	authorDid: string;
+	// Null after a soft-delete. Self-pollinate then can't fire (null !== did),
+	// so anonymous buds remain pollinable.
+	authorDid: string | null;
 };
 
 export type PollenCreateRejection =
@@ -158,13 +157,12 @@ export type ValidateBudUpdateArgs = {
 	record: BudRecord;
 	authorDid: string;
 	existing: ExistingBud | null;
-	now: Date;
 };
 
 export function validateBudUpdate(
 	args: ValidateBudUpdateArgs,
 ): ValidationResult<BudUpdateRejection> {
-	const { record, authorDid, existing, now } = args;
+	const { record, authorDid, existing } = args;
 
 	if (!existing) {
 		return { ok: false, reason: "bud-not-found" };
@@ -172,10 +170,6 @@ export function validateBudUpdate(
 
 	if (existing.authorDid !== authorDid) {
 		return { ok: false, reason: "author-mismatch" };
-	}
-
-	if (now.getTime() >= existing.bloomsAt.getTime()) {
-		return { ok: false, reason: "edit-window-closed" };
 	}
 
 	if (existing.childCount > 0) {
@@ -192,28 +186,21 @@ export function validateBudUpdate(
 export type ValidateBudDeleteArgs = {
 	authorDid: string;
 	existing: ExistingBud | null;
-	now: Date;
 };
 
 export function validateBudDelete(
 	args: ValidateBudDeleteArgs,
 ): ValidationResult<BudDeleteRejection> {
-	const { authorDid, existing, now } = args;
+	const { authorDid, existing } = args;
 
 	if (!existing) {
 		return { ok: false, reason: "bud-not-found" };
 	}
 
+	// A nulled authorDid means the bud has already been soft-deleted; treat
+	// any further delete as author-mismatch so the same path covers replays.
 	if (existing.authorDid !== authorDid) {
 		return { ok: false, reason: "author-mismatch" };
-	}
-
-	if (now.getTime() >= existing.bloomsAt.getTime()) {
-		return { ok: false, reason: "delete-window-closed" };
-	}
-
-	if (existing.childCount > 0) {
-		return { ok: false, reason: "has-children" };
 	}
 
 	return { ok: true };

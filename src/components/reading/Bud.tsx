@@ -50,9 +50,9 @@ export function Bud({
 							—
 						</span>
 						<AuthorLink
-							did={bud.author.did}
-							handle={bud.author.handle}
-							displayName={bud.author.displayName}
+							did={bud.author?.did}
+							handle={bud.author?.handle}
+							displayName={bud.author?.displayName}
 							className="byline-handle"
 						/>
 						<span className="byline-sep" aria-hidden="true">

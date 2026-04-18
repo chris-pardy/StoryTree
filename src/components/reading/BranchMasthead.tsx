@@ -36,13 +36,19 @@ export function BranchMasthead({
 			<p className="masthead-byline">
 				By{" "}
 				<AuthorLink
-					did={leafBud.author.did}
-					handle={leafBud.author.handle}
-					displayName={leafBud.author.displayName}
+					did={leafBud.author?.did}
+					handle={leafBud.author?.handle}
+					displayName={leafBud.author?.displayName}
 					className="masthead-handle"
 				/>
 				{(() => {
-					const sameAuthor = rootBud.author.did === leafBud.author.did;
+					// "Same author" only makes sense when both ends have one. A
+					// soft-deleted root or leaf is treated as a distinct (anonymous)
+					// contributor for the purpose of the byline.
+					const sameAuthor =
+						!!rootBud.author &&
+						!!leafBud.author &&
+						rootBud.author.did === leafBud.author.did;
 					const exclude = sameAuthor ? 1 : 2;
 					const others = Math.max(
 						0,
@@ -54,9 +60,9 @@ export function BranchMasthead({
 							<>
 								{", "}
 								<AuthorLink
-									did={rootBud.author.did}
-									handle={rootBud.author.handle}
-									displayName={rootBud.author.displayName}
+									did={rootBud.author?.did}
+									handle={rootBud.author?.handle}
+									displayName={rootBud.author?.displayName}
 									className="masthead-handle"
 								/>
 							</>
@@ -68,9 +74,9 @@ export function BranchMasthead({
 								<>
 									{", "}
 									<AuthorLink
-										did={rootBud.author.did}
-										handle={rootBud.author.handle}
-										displayName={rootBud.author.displayName}
+										did={rootBud.author?.did}
+										handle={rootBud.author?.handle}
+										displayName={rootBud.author?.displayName}
 										className="masthead-handle"
 									/>
 								</>
