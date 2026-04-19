@@ -30,6 +30,7 @@ import {
 	resolveDidToPds,
 	runDiscover,
 } from "../src/server/reindex/discover.ts";
+import { enqueueDiscoverJob } from "../src/server/reindex/enqueue.ts";
 
 const FALLBACK_RESOLVER = "https://public.api.bsky.app";
 
@@ -141,18 +142,14 @@ async function queueDiscoverJob(opts: {
 	concurrency: number;
 	limit: number | null;
 }): Promise<void> {
-	const job = await prisma.reindexJob.create({
-		data: {
-			kind: "discover",
-			status: "pending",
-			relay: opts.relay,
-			concurrency: opts.concurrency,
-			recordLimit: opts.limit,
-		},
+	const job = await enqueueDiscoverJob({
+		relay: opts.relay,
+		concurrency: opts.concurrency,
+		recordLimit: opts.limit,
 	});
 	console.log(`queued discover job ${job.id}`);
 	console.log(
-		`  relay=${job.relay} concurrency=${job.concurrency}${job.recordLimit ? ` limit=${job.recordLimit}` : ""}`,
+		`  relay=${opts.relay} concurrency=${opts.concurrency}${opts.limit ? ` limit=${opts.limit}` : ""}`,
 	);
 	console.log(
 		`  watch:   SELECT status, scanned, reindexed, skipped, errored, "lastDid", "heartbeatAt" FROM "ReindexJob" WHERE id='${job.id}';`,

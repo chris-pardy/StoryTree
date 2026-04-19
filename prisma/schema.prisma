@@ -159,19 +159,28 @@ model HandleCache {
   fetchedAt   DateTime @default(now())
 }
 
-// Long-running reindex jobs driven by the indexer Fly machine. A job is
-// enqueued with `status='pending'`; the worker atomically flips it to
-// `running`, executes the discover flow against a relay, and periodically
-// writes progress counters + the last relay cursor back to this row.
-// Cancel a running job by setting `cancelRequested = true`; the worker
-// notices at the next page boundary and marks the row `cancelled`. Stale
-// `running` rows (heartbeatAt older than the reclaim window) are reclaimed
-// by a fresh worker and resumed from the saved cursor.
+// Long-running reindex jobs driven by the reindex Fly machine. Two kinds:
+//
+//   "discover"  — crawl a relay's listRepos, describeRepo-filter, then
+//                 reindex every repo that holds a branchline record.
+//                 `relay` / `concurrency` / `recordLimit` / `cursor` apply.
+//
+//   "targeted"  — reindex a single repo whose DID was surfaced by jetstream
+//                 first-sight or by a fresh login. `did` applies; relay-only
+//                 fields are null. One job per DID across the app's
+//                 lifetime (enqueue-side dedup in enqueueTargetedReindex).
+//
+// Workers atomically flip `status` from `pending` to `running`, then flush
+// progress counters + `heartbeatAt` every couple of seconds. Stale
+// `running` rows (heartbeat older than the reclaim window) are picked up
+// by a fresh worker and resumed — discover jobs from the saved cursor,
+// targeted jobs from scratch since they're one-shot.
 model ReindexJob {
   id              String    @id @default(cuid())
   kind            String
   status          String    @default("pending")
-  relay           String
+  relay           String?
+  did             String?
   concurrency     Int       @default(8)
   recordLimit     Int?
   cursor          String?
@@ -191,4 +200,5 @@ model ReindexJob {
 
   @@index([status])
   @@index([createdAt])
+  @@index([kind, did])
 }

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getOAuthClient } from "#/server/auth/client";
 import { isSafeReturnTo } from "#/server/auth/return-to";
 import { buildSessionCookie, createUserSession } from "#/server/auth/session";
+import { enqueueTargetedReindex } from "#/server/reindex/enqueue";
 
 export const Route = createFileRoute("/api/auth/callback")({
 	server: {
@@ -13,6 +14,13 @@ export const Route = createFileRoute("/api/auth/callback")({
 						url.searchParams,
 					);
 					const sid = await createUserSession(session.did);
+					// Opportunistically backfill this user's branchline records.
+					// Fire-and-forget so a slow DB write doesn't delay the redirect;
+					// enqueueTargetedReindex dedups so returning users don't stack
+					// jobs on every login.
+					enqueueTargetedReindex(session.did).catch((err) =>
+						console.error("[auth.callback] enqueue reindex failed", err),
+					);
 					// `state` was set by api.auth.login.ts to the user's `returnTo`
 					// (already validated at that layer), but re-check here because
 					// the OAuth round-trip is untrusted wire data.

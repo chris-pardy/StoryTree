@@ -3,6 +3,8 @@ import type { PrismaClient } from "../../generated/prisma/client.ts";
 import type { ProcessDeps } from "../indexer/process.ts";
 import {
 	type DiscoverStats,
+	reindexRepo,
+	resolveDidToPds,
 	runDiscover,
 } from "./discover.ts";
 
@@ -22,12 +24,14 @@ const PROGRESS_FLUSH_MS = 2_000;
 const STALE_HEARTBEAT_MS = 120_000;
 
 const KIND_DISCOVER = "discover";
+const KIND_TARGETED = "targeted";
 
 type JobRow = {
 	id: string;
 	kind: string;
 	status: string;
-	relay: string;
+	relay: string | null;
+	did: string | null;
 	concurrency: number;
 	recordLimit: number | null;
 	cursor: string | null;
@@ -230,9 +234,78 @@ async function executeDiscoverJob(
 	}
 }
 
+// One-shot: resolve the DID's PDS, walk its three branchline collections,
+// mark the job completed. Uses the same counter columns as discover but
+// with a 1-row semantics: `scanned=1`, and then one of
+// `reindexed`/`skipped`/`errored` depending on the outcome. No cursor,
+// no cancellation — these jobs finish in seconds.
+async function executeTargetedJob(
+	job: JobRow,
+	deps: WorkerDeps,
+): Promise<void> {
+	const { prisma } = deps;
+	const did = job.did;
+	if (!did) {
+		await prisma.reindexJob.update({
+			where: { id: job.id },
+			data: {
+				status: "failed",
+				errorMessage: "targeted job missing did",
+				finishedAt: new Date(),
+				heartbeatAt: new Date(),
+			},
+		});
+		console.error(`[reindex] failed ${job.id}: targeted job missing did`);
+		return;
+	}
+	console.log(`[reindex] running ${job.id}: targeted did=${did}`);
+
+	try {
+		const pds = await resolveDidToPds(did);
+		const tally = await reindexRepo(did, pds, deps.process);
+		const hadRecords =
+			tally.ok > 0 || tally.dropped > 0 || tally.errors > 0;
+		await prisma.reindexJob.update({
+			where: { id: job.id },
+			data: {
+				status: "completed",
+				scanned: 1,
+				reindexed: hadRecords ? 1 : 0,
+				skipped: hadRecords ? 0 : 1,
+				errored: 0,
+				lastDid: did,
+				finishedAt: new Date(),
+				heartbeatAt: new Date(),
+			},
+		});
+		console.log(
+			`[reindex] completed ${job.id}: did=${did} ${tally.ok} ok, ${tally.dropped} dropped, ${tally.errors} errors`,
+		);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		await prisma.reindexJob.update({
+			where: { id: job.id },
+			data: {
+				status: "failed",
+				errorMessage: message,
+				scanned: 1,
+				errored: 1,
+				lastDid: did,
+				finishedAt: new Date(),
+				heartbeatAt: new Date(),
+			},
+		});
+		console.error(`[reindex] failed ${job.id}: ${message}`);
+	}
+}
+
 async function dispatchJob(job: JobRow, deps: WorkerDeps): Promise<void> {
 	if (job.kind === KIND_DISCOVER) {
 		await executeDiscoverJob(job, deps);
+		return;
+	}
+	if (job.kind === KIND_TARGETED) {
+		await executeTargetedJob(job, deps);
 		return;
 	}
 	// Unknown kind: mark failed so it doesn't block the queue. New kinds

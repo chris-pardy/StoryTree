@@ -1,3 +1,4 @@
+import { enqueueTargetedReindex } from "../reindex/enqueue.ts";
 import {
 	ensureHandleCached,
 	refreshCachedHandle,
@@ -289,14 +290,19 @@ export function startJetstreamSubscriber(
 
 				if (!isCommitFrame(data)) return;
 
-				// Warm handle cache on first bud from a new author. Fire-and-forget:
-				// network latency must not block ingest. Skip pollen (by design) and
-				// bud updates/deletes (authorDid is immutable after create).
+				// Warm handle cache + enqueue a targeted backfill reindex on first
+				// bud from a new author. Both are fire-and-forget — network
+				// latency and DB writes must not block ingest. Skip pollen (by
+				// design) and bud updates/deletes (authorDid is immutable after
+				// create). `enqueueTargetedReindex` dedups against any prior job
+				// for the DID, so an author who keeps posting buds only
+				// triggers one backfill over the app's lifetime.
 				if (
 					data.commit.collection === BUD_COLLECTION &&
 					data.commit.operation === "create"
 				) {
 					ensureHandleCached(data.did).catch((err) => onError?.(err));
+					enqueueTargetedReindex(data.did).catch((err) => onError?.(err));
 				}
 
 				enqueue(data);
