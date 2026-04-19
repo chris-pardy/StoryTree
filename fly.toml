@@ -19,6 +19,9 @@ primary_region = "iad"
   # FLY_PROCESS_GROUP so only the "indexer" machine actually starts it — the
   # "web" machines are on the allowlist-by-omission.
   INDEXER_ENABLED = "true"
+  # Same story for the reindex-job worker: set globally, gated to the
+  # dedicated `reindex` machine by src/server/reindex/boot.ts.
+  REINDEX_WORKER_ENABLED = "true"
 
 [processes]
   web = "node server.js"

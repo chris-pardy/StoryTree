@@ -6,14 +6,16 @@ declare global {
 	var __reindexWorkerStop: (() => Promise<void>) | undefined;
 }
 
-// Starts the reindex-job worker inside the current node process. On Fly
-// the worker runs on its own `reindex` process group (see fly.toml) — a
-// full bsky.network discover sweep can take weeks, and letting it share
-// the `indexer` machine risks starving the jetstream subscriber's DB pool.
-// Off-Fly (dev), FLY_PROCESS_GROUP is unset and the gate falls through so
-// the worker still runs alongside dev's in-process indexer.
+// Starts the reindex-job worker inside the current node process. Gated on
+// REINDEX_WORKER_ENABLED rather than INDEXER_ENABLED so the jetstream
+// subscriber and this worker can be toggled independently — locally the
+// "one repo" case makes a discover sweep trivial, so turning on just this
+// env var is enough to dev-test the queue/worker flow without having to
+// spin up jetstream too. On Fly the same env var is set globally in [env]
+// and the FLY_PROCESS_GROUP check keeps the worker isolated to the
+// dedicated `reindex` machine.
 export function bootReindexWorker(): void {
-	if (process.env.INDEXER_ENABLED !== "true") return;
+	if (process.env.REINDEX_WORKER_ENABLED !== "true") return;
 	const flyGroup = process.env.FLY_PROCESS_GROUP;
 	if (flyGroup && flyGroup !== "reindex") return;
 	if (globalThis.__reindexWorkerStop) return;
