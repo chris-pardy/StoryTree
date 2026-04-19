@@ -22,7 +22,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "lex:gen": "lex gen-api --yes src/generated/lexicons lexicons/ink/branchline/*.json lexicons/com/atproto/repo/*.json",
-    "grant-seeds": "tsx scripts/grant-seeds.ts"
+    "grant-seeds": "tsx scripts/grant-seeds.ts",
+    "reindex": "dotenv -e .env.local -- tsx scripts/reindex.ts"
   },
   "dependencies": {
     "@atproto-labs/handle-resolver-node": "^0.1.25",
