@@ -23,6 +23,12 @@ primary_region = "iad"
 [processes]
   web = "node server.js"
   indexer = "node server.js"
+  # Dedicated machine for the reindex-job worker. Shares the same image as
+  # web/indexer — boot gates in src/server/reindex/boot.ts + src/server/
+  # indexer/boot.ts pick the right subscriber by FLY_PROCESS_GROUP. A full
+  # bsky.network sweep takes weeks, so isolating it keeps long PDS crawls
+  # from starving the indexer's DB pool or pegging its CPU.
+  reindex = "node server.js"
 
 [http_service]
   internal_port = 3000

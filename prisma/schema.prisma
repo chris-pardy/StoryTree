@@ -158,3 +158,37 @@ model HandleCache {
   verified    Boolean
   fetchedAt   DateTime @default(now())
 }
+
+// Long-running reindex jobs driven by the indexer Fly machine. A job is
+// enqueued with `status='pending'`; the worker atomically flips it to
+// `running`, executes the discover flow against a relay, and periodically
+// writes progress counters + the last relay cursor back to this row.
+// Cancel a running job by setting `cancelRequested = true`; the worker
+// notices at the next page boundary and marks the row `cancelled`. Stale
+// `running` rows (heartbeatAt older than the reclaim window) are reclaimed
+// by a fresh worker and resumed from the saved cursor.
+model ReindexJob {
+  id              String    @id @default(cuid())
+  kind            String
+  status          String    @default("pending")
+  relay           String
+  concurrency     Int       @default(8)
+  recordLimit     Int?
+  cursor          String?
+  scanned         Int       @default(0)
+  reindexed       Int       @default(0)
+  skipped         Int       @default(0)
+  errored         Int       @default(0)
+  lastDid         String?
+  errorMessage    String?
+  cancelRequested Boolean   @default(false)
+  workerId        String?
+  heartbeatAt     DateTime?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
