@@ -79,6 +79,10 @@
           "description": "The bud text exceeds the 500-word ceiling."
         },
         {
+          "name": "InvalidFormatting",
+          "description": "A formatting span is malformed — offsets out of bounds, start >= end, or an unknown span type."
+        },
+        {
           "name": "NotSeedGrantee",
           "description": "The caller is not the grantee of the seed they are trying to plant."
         },

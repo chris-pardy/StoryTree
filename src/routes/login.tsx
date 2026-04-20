@@ -32,10 +32,68 @@ export const Route = createFileRoute("/login")({
 	},
 });
 
+const ATMO_LOGOS = [
+	"bluesky",
+	"tangled",
+	"anisota",
+	"beacon-bits",
+	"eurosky",
+	"flashes",
+	"gander",
+	"germ",
+	"leaflet",
+	"northsky",
+	"offprint",
+	"pckt",
+	"plyr",
+	"popfeed",
+	"blento",
+	"semble",
+	"skylight",
+	"blacksky",
+	"spark",
+	"stream-place",
+] as const;
+
+const ATMO_LOGO_EXT: Record<string, string> = { spark: "png" };
+
+function atmoSrc(name: string) {
+	return `/atmo/atmo-${name}.${ATMO_LOGO_EXT[name] ?? "jpg"}`;
+}
+
+function AtmoMarquee() {
+	return (
+		<div className="atmo-marquee" aria-hidden="true">
+			<div className="atmo-marquee-track">
+				{ATMO_LOGOS.map((name) => (
+					<img
+						key={name}
+						src={atmoSrc(name)}
+						alt=""
+						className="atmo-marquee-logo"
+						loading="lazy"
+						decoding="async"
+					/>
+				))}
+				{ATMO_LOGOS.map((name) => (
+					<img
+						key={`${name}-dup`}
+						src={atmoSrc(name)}
+						alt=""
+						className="atmo-marquee-logo"
+						loading="lazy"
+						decoding="async"
+					/>
+				))}
+			</div>
+		</div>
+	);
+}
+
 function LoginPage() {
 	const { returnTo } = Route.useSearch();
 	return (
-		<main className="reading-column px-6 pb-28 pt-16 sm:pt-24">
+		<main className="reading-column login-page px-6 pb-28 pt-16 sm:pt-24">
 			<header className="reading-masthead rise-in">
 				<h1 className="masthead-title">Sign in</h1>
 				<p className="masthead-lede">
@@ -43,6 +101,8 @@ function LoginPage() {
 					your account&rsquo;s host to authorize branchline.
 				</p>
 			</header>
+
+			<AtmoMarquee />
 
 			<form
 				method="post"

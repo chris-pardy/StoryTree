@@ -14,7 +14,7 @@ import { queryKeys } from "#/queries/keys";
 import { BloomCarousel } from "./BloomCarousel";
 import { DotPulse } from "./DotPulse";
 import { Bud } from "./reading/Bud";
-import { ContinueStory } from "./reading/ContinueStory";
+import { BloomingNotice, ContinueStory } from "./reading/ContinueStory";
 
 export function Branch({ uri }: { uri: string }) {
 	const { data: budUris } = useSuspenseQuery(branchQuery(uri));
@@ -57,7 +57,7 @@ export function Branch({ uri }: { uri: string }) {
 				))}
 			</ol>
 
-			{allBudsLoaded && leafBud && !leafBud.locked && (
+			{allBudsLoaded && leafBud && !leafBud.locked && !leafBud.growing && (
 				<ContinueStory
 					parentUri={uri}
 					parentAuthor={leafBud.author?.did}
@@ -81,6 +81,10 @@ export function Branch({ uri }: { uri: string }) {
 						});
 					}}
 				/>
+			)}
+
+			{allBudsLoaded && leafBud && leafBud.growing && leafBud.bloomsAt && (
+				<BloomingNotice bloomsAt={leafBud.bloomsAt} />
 			)}
 
 			{allBudsLoaded && (

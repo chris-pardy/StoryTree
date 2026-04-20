@@ -5,6 +5,7 @@ import { Nut } from "lucide-react";
 import { useAdminPermissions } from "#/hooks/useAdminPermissions";
 import { authorSeedsQuery } from "#/queries/author-seeds";
 import LogoMark from "./LogoMark";
+import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 
 function SeedLink({ did }: { did: string }) {
@@ -36,6 +37,7 @@ export default function Header({ did }: { did: string | null }) {
 				<div className="site-masthead-actions">
 					{did ? (
 						<>
+							<NotificationBell />
 							<SeedLink did={did} />
 							<form method="post" action="/api/auth/logout">
 								<button type="submit" className="site-auth-button">

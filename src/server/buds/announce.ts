@@ -1,6 +1,7 @@
 import { type AppBskyRichtextFacet, AtpAgent } from "@atproto/api";
 import { getPublicUrl } from "../config.ts";
 import { resolveActor } from "../identity/resolve.ts";
+import { buildBudExternalEmbed } from "./og-embed.ts";
 
 export type PlantAnnouncement = {
 	authorDid: string;
@@ -141,7 +142,14 @@ export async function announcePlantToCentralBsky(
 
 		const agent = new AtpAgent({ service });
 		await agent.login({ identifier, password });
-		await agent.post({ text, facets });
+
+		const embed = await buildBudExternalEmbed({
+			agent,
+			budUri: args.budUri,
+			budUrl: url,
+		});
+
+		await agent.post({ text, facets, ...(embed ? { embed } : {}) });
 	} catch (err) {
 		console.error("[announce] central bsky post failed", err);
 	}

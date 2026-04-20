@@ -1,13 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { parseBudShorthand } from "#/lib/bud-uri";
-import { hydrateBuds } from "#/server/buds/hydrate";
-import { resolveDidFromHandle } from "#/server/identity/resolve";
-import { renderBudOgPng } from "#/server/og/render";
 
 export const Route = createFileRoute("/og/bud/$")({
 	server: {
 		handlers: {
 			GET: async ({ request }) => {
+				const [
+					{ hydrateBuds },
+					{ resolveDidFromHandle },
+					{ getOrRenderOgPng },
+					{ renderBudOgPng },
+				] = await Promise.all([
+					import("#/server/buds/hydrate"),
+					import("#/server/identity/resolve"),
+					import("#/server/og/cache"),
+					import("#/server/og/render"),
+				]);
+
 				const url = new URL(request.url);
 				// Splat lives after "/og/bud/" — strip the .png suffix if present so
 				// crawlers can use either `/og/bud/<handle>/<rkey>` or
@@ -16,19 +25,24 @@ export const Route = createFileRoute("/og/bud/$")({
 					url.pathname.replace(/^\/og\/bud\/?/, "").replace(/\.png$/, ""),
 				);
 
-				const uri = await resolveBudUri(raw);
+				const uri = await resolveBudUri(raw, resolveDidFromHandle);
 				if (!uri) return notFoundPng();
 
+				// Key on the uri alone — bud title/text edits mint a new CID but
+				// keep the same uri, so we add the CID below once we've hydrated
+				// to pick up content changes without retaining stale renders.
 				const [bud] = await hydrateBuds([uri]);
 				if (!bud) return notFoundPng();
 
-				const png = await renderBudOgPng({
-					title: bud.title,
-					authorDisplayName: bud.author?.displayName ?? null,
-					authorHandle: bud.author?.handle ?? "anonymous",
-					childCount: bud.children?.length ?? 0,
-					pollenCount: bud.pollenCount,
-				});
+				const png = await getOrRenderOgPng(`bud:${uri}:${bud.cid}`, () =>
+					renderBudOgPng({
+						title: bud.title,
+						authorDisplayName: bud.author?.displayName ?? null,
+						authorHandle: bud.author?.handle ?? "anonymous",
+						childCount: bud.children?.length ?? 0,
+						pollenCount: bud.pollenCount,
+					}),
+				);
 
 				return new Response(new Uint8Array(png), {
 					headers: {
@@ -42,7 +56,10 @@ export const Route = createFileRoute("/og/bud/$")({
 	},
 });
 
-async function resolveBudUri(splat: string): Promise<string | null> {
+async function resolveBudUri(
+	splat: string,
+	resolveDidFromHandle: (handle: string) => Promise<string | null>,
+): Promise<string | null> {
 	const direct = parseBudShorthand(splat);
 	if (!direct) return null;
 	// parseBudShorthand accepts either a DID or a handle as the identifier.

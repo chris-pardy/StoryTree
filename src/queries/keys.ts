@@ -10,4 +10,6 @@ export const queryKeys = {
 	authorPlantings: (actor: string, limit: number) =>
 		["authorPlantings", { actor, limit }] as const,
 	profilePermissions: (did: string) => ["profilePermissions", did] as const,
+	notifications: (seenAt: string | null) =>
+		["notifications", { seenAt }] as const,
 };

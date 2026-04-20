@@ -8,9 +8,11 @@ import { BudCard } from "#/components/BudCard";
 import { DotPulse } from "#/components/DotPulse";
 import { PermissionPanel } from "#/components/PermissionPanel";
 import { PillTabs } from "#/components/PillTabs";
+import { siteOgMeta } from "#/lib/og-meta";
 import { authorBudsQuery } from "#/queries/author-buds";
 import { checkPermissions } from "#/server/admin";
 import { resolveProfileActor } from "#/server/identity/profile-actor";
+import { loadSiteMeta } from "#/server/site-meta";
 
 const rootApi = getRouteApi("__root__");
 
@@ -23,9 +25,10 @@ const PROFILE_TABS = [
 
 export const Route = createFileRoute("/$handle")({
 	loader: async ({ params }) => {
-		const [actor, viewerPerms] = await Promise.all([
+		const [actor, viewerPerms, site] = await Promise.all([
 			resolveProfileActor({ data: { param: params.handle } }),
 			checkPermissions(),
+			loadSiteMeta(),
 		]);
 		if (!actor) throw notFound();
 		return {
@@ -33,11 +36,26 @@ export const Route = createFileRoute("/$handle")({
 			handle: actor.handle,
 			displayName: actor.displayName,
 			canGrantPermissions: viewerPerms.canGrantPermissions,
+			publicUrl: site.publicUrl,
 		};
 	},
 	head: ({ loaderData }) => {
-		const label = loaderData?.displayName ?? loaderData?.handle ?? "Profile";
-		return { meta: [{ title: `${label} | Branchline` }] };
+		if (!loaderData) return { meta: [{ title: "Branchline" }] };
+		const label = loaderData.displayName ?? loaderData.handle;
+		const handleSlug = loaderData.handle.startsWith("did:")
+			? loaderData.did
+			: loaderData.handle;
+		return {
+			meta: siteOgMeta({
+				title: `${label} · Branchline`,
+				description: loaderData.displayName
+					? `${loaderData.displayName} (@${loaderData.handle}) on Branchline.`
+					: `@${loaderData.handle} on Branchline.`,
+				imageUrl: `${loaderData.publicUrl}/og/profile/${encodeURIComponent(handleSlug)}.png`,
+				pageUrl: `${loaderData.publicUrl}/${encodeURIComponent(handleSlug)}`,
+				type: "profile",
+			}),
+		};
 	},
 	component: Profile,
 	notFoundComponent: NotFoundProfile,

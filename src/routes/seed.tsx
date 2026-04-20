@@ -7,11 +7,28 @@ import { useViewerDid } from "#/components/auth/gates";
 import { DotPulse } from "#/components/DotPulse";
 import { GrantSeedCard } from "#/components/GrantSeedCard";
 import { PillTabs } from "#/components/PillTabs";
+import { siteOgMeta } from "#/lib/og-meta";
 import { checkPermissions } from "#/server/admin";
+import { loadSiteMeta } from "#/server/site-meta";
 
 export const Route = createFileRoute("/seed")({
 	component: SeedPage,
-	loader: () => checkPermissions(),
+	loader: async () => {
+		const [perms, site] = await Promise.all([
+			checkPermissions(),
+			loadSiteMeta(),
+		]);
+		return { ...perms, publicUrl: site.publicUrl };
+	},
+	head: ({ loaderData }) => ({
+		meta: siteOgMeta({
+			title: "Seeds · Branchline",
+			description:
+				"Plant a seed and watch a story tree grow. The seeds you've gathered, ready to root.",
+			imageUrl: `${loaderData?.publicUrl ?? ""}/og/site.png`,
+			pageUrl: `${loaderData?.publicUrl ?? ""}/seed`,
+		}),
+	}),
 });
 
 type Tab = "ready" | "rooted";
@@ -41,7 +58,7 @@ function SeedPage() {
 						<em>gathered.</em>
 					</h1>
 					<p className="masthead-lede">
-						Planting a seed is the first step to watching story trees grow.
+						Planting a seed is the first step toward a new story tree.
 					</p>
 				</header>
 			</section>

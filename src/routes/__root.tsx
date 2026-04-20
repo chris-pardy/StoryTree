@@ -6,6 +6,7 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { siteOgMeta } from "#/lib/og-meta";
 import { fetchSessionInfo } from "#/server/auth/loader";
 import FloatingBrand from "../components/FloatingBrand";
 import Footer from "../components/Footer";
@@ -21,18 +22,19 @@ const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getIte
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	loader: () => fetchSessionInfo(),
-	head: () => ({
+	head: ({ loaderData }) => ({
 		meta: [
-			{
-				charSet: "utf-8",
-			},
-			{
-				name: "viewport",
-				content: "width=device-width, initial-scale=1",
-			},
-			{
-				title: "Branchline",
-			},
+			{ charSet: "utf-8" },
+			{ name: "viewport", content: "width=device-width, initial-scale=1" },
+			// Default OG / Twitter card — child routes that set their own
+			// `og:*` tags override these via tanstack-router's meta merge.
+			...siteOgMeta({
+				title: "Branchline — stories grow in branches",
+				description:
+					"A place to grow stories together, one bloom at a time. Read a path. Write the next bud. Watch stories branch.",
+				imageUrl: `${loaderData?.publicUrl ?? ""}/og/site.png`,
+				pageUrl: `${loaderData?.publicUrl ?? ""}/`,
+			}),
 		],
 		links: [
 			{

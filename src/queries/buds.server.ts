@@ -28,6 +28,7 @@ function rowToBudView(
 		string,
 		{ handle: string | null; displayName: string | null }
 	>,
+	viewerDid?: string | null,
 ): GetBuds.BudView {
 	const actor = handles.get(row.authorDid);
 	return {
@@ -44,12 +45,20 @@ function rowToBudView(
 			? { uri: row.parentUri, cid: row.parentCid as string }
 			: undefined,
 		createdAt: row.createdAt.toISOString(),
+		bloomsAt: row.bloomsAt.toISOString(),
 		depth: row.depth,
 		pollenCount: row.pollenCount,
 		intermediateCount: row.intermediateCount,
 		children: row.children.length > 0 ? row.children : undefined,
 		growing: row.bloomsAt.getTime() > Date.now(),
 		locked: row.locked,
+		viewerCanEdit:
+			viewerDid != null &&
+			viewerDid === row.authorDid &&
+			!row.locked &&
+			row.children.length === 0
+				? true
+				: undefined,
 		viewerPollinated: row.viewerPollinated || undefined,
 		formatting: row.formatting as GetBuds.BudView["formatting"],
 	};
@@ -116,7 +125,7 @@ export async function hydrateBuds(
 	for (const uri of uris) {
 		const row = rowsByUri.get(uri);
 		if (!row) continue;
-		buds.push(rowToBudView(row, handles));
+		buds.push(rowToBudView(row, handles, viewerDid));
 	}
 	return buds;
 }

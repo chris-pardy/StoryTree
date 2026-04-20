@@ -134,6 +134,8 @@ function rejectionToErrorName(reason: string): string {
 	switch (reason) {
 		case "word-limit-exceeded":
 			return "WordLimitExceeded";
+		case "invalid-formatting":
+			return "InvalidFormatting";
 		case "parent-required":
 			return "ParentRequired";
 		case "parent-not-found":

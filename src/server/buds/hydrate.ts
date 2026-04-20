@@ -45,6 +45,7 @@ function rowToBudView(
 			? { uri: row.parentUri, cid: row.parentCid as string }
 			: undefined,
 		createdAt: row.createdAt.toISOString(),
+		bloomsAt: row.bloomsAt.toISOString(),
 		depth: row.depth,
 		pollenCount: row.pollenCount,
 		intermediateCount: row.intermediateCount,

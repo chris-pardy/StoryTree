@@ -1,7 +1,21 @@
 import "./policy-prose.css";
 import { createFileRoute } from "@tanstack/react-router";
+import { siteOgMeta } from "#/lib/og-meta";
+import { loadSiteMeta } from "#/server/site-meta";
 
-export const Route = createFileRoute("/policy")({ component: PolicyPage });
+export const Route = createFileRoute("/policy")({
+	loader: () => loadSiteMeta(),
+	head: ({ loaderData }) => ({
+		meta: siteOgMeta({
+			title: "Policy · Branchline",
+			description:
+				"How Branchline handles your writing: your words live in your atproto repository. We index them so others can read them.",
+			imageUrl: `${loaderData?.publicUrl ?? ""}/og/site.png`,
+			pageUrl: `${loaderData?.publicUrl ?? ""}/policy`,
+		}),
+	}),
+	component: PolicyPage,
+});
 
 function PolicyPage() {
 	return (
@@ -47,6 +61,10 @@ function PolicyPage() {
 					collections you authorized during sign-in. Today that&rsquo;s:
 				</p>
 				<ul>
+					<li>
+						<code>ink.branchline.seed</code> — the seeds you plant as the root
+						of a new story, or pass along to someone else
+					</li>
 					<li>
 						<code>ink.branchline.bud</code> — the buds (story contributions) you
 						write
@@ -103,12 +121,20 @@ function PolicyPage() {
 					will fall out of our AppView. Your atproto account itself isn&rsquo;t
 					ours to delete — it lives on your PDS and belongs to you.
 				</p>
+				<p>
+					One caveat: branchline is a shared tree. When a bud you wrote already
+					has writers extending it, the text of that bud is load-bearing for
+					their work — it&rsquo;s what they read and replied to. Deleting it
+					takes your byline off the bud, which becomes <em>Anonymous</em>, but
+					the words themselves stay in place so the path still reads. If you
+					need the text itself removed, reach out — see{" "}
+					<strong>Contact</strong>, below.
+				</p>
 
 				<h2>Contact</h2>
 				<p>
-					Questions, concerns, or a record you&rsquo;d like us to stop
-					displaying out of band? Reach us on Bluesky or open an issue on the
-					branchline repo.
+					Questions, concerns, or a record you&rsquo;d like taken down? Reach
+					us on Bluesky.
 				</p>
 			</section>
 		</main>

@@ -250,6 +250,7 @@ const existingFresh: ExistingBud = {
 	uri: BUD_URI,
 	authorDid: AUTHOR,
 	childCount: 0,
+	locked: false,
 };
 
 const updatedRecord: BudRecord = {
@@ -303,6 +304,20 @@ describe("validateBudUpdate", () => {
 		).toEqual({ ok: false, reason: "has-children" });
 	});
 
+	it("rejects an edit when the bud has been locked", () => {
+		const locked: ExistingBud = {
+			...existingFresh,
+			locked: true,
+		};
+		expect(
+			validateBudUpdate({
+				record: updatedRecord,
+				authorDid: AUTHOR,
+				existing: locked,
+			}),
+		).toEqual({ ok: false, reason: "bud-locked" });
+	});
+
 	it("rejects an edit whose new text exceeds the 500-word limit", () => {
 		const tooLong = Array.from(
 			{ length: BUD_WORD_LIMIT + 1 },
@@ -315,6 +330,143 @@ describe("validateBudUpdate", () => {
 				existing: existingFresh,
 			}),
 		).toEqual({ ok: false, reason: "word-limit-exceeded" });
+	});
+
+	describe("formatting spans", () => {
+		const withFormatting = (formatting: unknown): BudRecord =>
+			({
+				...updatedRecord,
+				formatting,
+			}) as BudRecord;
+
+		it("accepts a record with no formatting field", () => {
+			expect(
+				validateBudUpdate({
+					record: updatedRecord,
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: true });
+		});
+
+		it("accepts an empty formatting array", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting([]),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: true });
+		});
+
+		it("accepts in-bounds spans with known types", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting([
+						{ start: 0, end: 5, type: "bold" },
+						{ start: 6, end: 10, type: "italic" },
+					]),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: true });
+		});
+
+		it("rejects spans where start >= end", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting([{ start: 5, end: 5, type: "bold" }]),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("rejects spans with negative offsets", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting([{ start: -1, end: 3, type: "bold" }]),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("rejects spans that extend past the end of text", () => {
+			const text = "hello";
+			expect(
+				validateBudUpdate({
+					record: {
+						...updatedRecord,
+						text,
+						formatting: [{ start: 0, end: text.length + 1, type: "bold" }],
+					},
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("rejects unknown span types", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting([{ start: 0, end: 3, type: "spooky" }]),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("rejects non-array formatting", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting("bold"),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("rejects non-integer offsets", () => {
+			expect(
+				validateBudUpdate({
+					record: withFormatting([{ start: 0.5, end: 3, type: "bold" }]),
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("measures span bounds in UTF-8 bytes, not code units", () => {
+			// "é" is 1 JS code unit but 2 UTF-8 bytes. A span of end=2 is legal;
+			// end=3 overshoots by one byte and must be rejected.
+			expect(
+				validateBudUpdate({
+					record: { ...updatedRecord, text: "é", formatting: [{ start: 0, end: 2, type: "bold" }] },
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: true });
+			expect(
+				validateBudUpdate({
+					record: { ...updatedRecord, text: "é", formatting: [{ start: 0, end: 3, type: "bold" }] },
+					authorDid: AUTHOR,
+					existing: existingFresh,
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
+
+		it("also validates formatting on create", () => {
+			expect(
+				validateBudCreate({
+					...baseArgs,
+					record: {
+						...childRecord,
+						formatting: [{ start: 0, end: 0, type: "bold" }],
+					},
+				}),
+			).toEqual({ ok: false, reason: "invalid-formatting" });
+		});
 	});
 });
 

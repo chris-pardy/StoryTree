@@ -1,0 +1,98 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.listNotifications",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List notifications for the authenticated viewer. Requires a valid session cookie; responds 401 otherwise. Notifications are derived from indexed records (no separate notification table) and grouped by subject: one entry per subject bud of the viewer's that has new activity. When `seenAt` is supplied, only activity strictly after that timestamp is considered.",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "seenAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Only consider activity strictly after this timestamp. Omit on first call to load the most recent notifications without filtering."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 20
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["notifications"],
+          "properties": {
+            "notifications": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#notificationView"
+              }
+            }
+          }
+        }
+      }
+    },
+    "notificationView": {
+      "type": "object",
+      "required": ["kind", "subjectUri", "subjectTitle", "latestAt", "actors", "actorCount"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "knownValues": ["continuation"],
+          "description": "Discriminator for the notification type. Only 'continuation' is emitted today (someone wrote a child bud on one of the viewer's buds); more kinds may be added without a breaking change."
+        },
+        "subjectUri": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "AT-URI of the viewer's bud the notification is about. For 'continuation', this is the parent bud that was extended."
+        },
+        "subjectTitle": {
+          "type": "string",
+          "description": "Title of the subject bud at time of query, for rendering convenience."
+        },
+        "latestAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "Timestamp of the most recent qualifying event in this group. Drives sort order."
+        },
+        "actors": {
+          "type": "array",
+          "maxLength": 10,
+          "description": "Up to 10 unique actors who produced qualifying events, most-recent actor first. A single actor contributing multiple events appears once.",
+          "items": {
+            "type": "ref",
+            "ref": "#actor"
+          }
+        },
+        "actorCount": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total number of unique actors contributing qualifying events, which may exceed actors.length when more than 10 actors are involved."
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "required": ["did"],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did"
+        },
+        "handle": {
+          "type": "string",
+          "format": "handle"
+        },
+        "displayName": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

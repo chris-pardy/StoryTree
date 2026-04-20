@@ -10,6 +10,54 @@ export type FormatSpan = {
 	type: "bold" | "italic" | "underline" | "strikethrough";
 };
 
+const FORMAT_TYPES = new Set<FormatSpan["type"]>([
+	"bold",
+	"italic",
+	"underline",
+	"strikethrough",
+]);
+
+const textEncoder = new TextEncoder();
+
+// Spans are byte-offset (UTF-8), end-exclusive, over `text`. Reject anything
+// that isn't a proper object with integer bounds inside [0, byteLength(text)]
+// and a known `type`. `budToProseMirror` tolerates partial-codepoint coverage
+// (it's been written to), so we don't require boundary alignment — just that
+// the span physically fits. `null`/undefined/empty array are all valid.
+export function validateFormattingSpans(
+	text: string,
+	formatting: unknown,
+): { ok: true } | { ok: false; reason: "invalid-formatting" } {
+	if (formatting === undefined || formatting === null) return { ok: true };
+	if (!Array.isArray(formatting)) {
+		return { ok: false, reason: "invalid-formatting" };
+	}
+	if (formatting.length === 0) return { ok: true };
+
+	const textByteLen = textEncoder.encode(text).length;
+	for (const span of formatting) {
+		if (!span || typeof span !== "object") {
+			return { ok: false, reason: "invalid-formatting" };
+		}
+		const { start, end, type } = span as Record<string, unknown>;
+		if (
+			typeof start !== "number" ||
+			typeof end !== "number" ||
+			!Number.isInteger(start) ||
+			!Number.isInteger(end)
+		) {
+			return { ok: false, reason: "invalid-formatting" };
+		}
+		if (start < 0 || end <= start || end > textByteLen) {
+			return { ok: false, reason: "invalid-formatting" };
+		}
+		if (typeof type !== "string" || !FORMAT_TYPES.has(type as FormatSpan["type"])) {
+			return { ok: false, reason: "invalid-formatting" };
+		}
+	}
+	return { ok: true };
+}
+
 export type BudRecord = {
 	title: string;
 	text: string;
@@ -50,6 +98,7 @@ export type ExistingBud = {
 	uri: string;
 	authorDid: string | null;
 	childCount: number;
+	locked: boolean;
 };
 
 export type ValidationResult<R extends string> =
@@ -58,6 +107,7 @@ export type ValidationResult<R extends string> =
 
 export type BudCreateRejection =
 	| "word-limit-exceeded"
+	| "invalid-formatting"
 	| "parent-required"
 	| "parent-not-found"
 	| "parent-cid-mismatch"
@@ -71,9 +121,11 @@ export type BudCreateRejection =
 
 export type BudUpdateRejection =
 	| "word-limit-exceeded"
+	| "invalid-formatting"
 	| "bud-not-found"
 	| "author-mismatch"
-	| "has-children";
+	| "has-children"
+	| "bud-locked";
 
 export type BudDeleteRejection = "bud-not-found" | "author-mismatch";
 
@@ -111,6 +163,9 @@ export function validateBudCreate(
 	if (countWords(record.text) > BUD_WORD_LIMIT) {
 		return { ok: false, reason: "word-limit-exceeded" };
 	}
+
+	const formatCheck = validateFormattingSpans(record.text, record.formatting);
+	if (!formatCheck.ok) return formatCheck;
 
 	if (!record.parent) {
 		return { ok: false, reason: "parent-required" };
@@ -182,9 +237,16 @@ export function validateBudUpdate(
 		return { ok: false, reason: "has-children" };
 	}
 
+	if (existing.locked) {
+		return { ok: false, reason: "bud-locked" };
+	}
+
 	if (countWords(record.text) > BUD_WORD_LIMIT) {
 		return { ok: false, reason: "word-limit-exceeded" };
 	}
+
+	const formatCheck = validateFormattingSpans(record.text, record.formatting);
+	if (!formatCheck.ok) return formatCheck;
 
 	return { ok: true };
 }

@@ -1,7 +1,7 @@
 import "./Bud.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Lock, LockOpen, Trash2 } from "lucide-react";
+import { Lock, LockOpen, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AuthorLink } from "#/components/AuthorLink";
 import { useViewerDid } from "#/components/auth/gates";
@@ -12,8 +12,11 @@ import { useAdminPermissions } from "#/hooks/useAdminPermissions";
 import { budQuery } from "#/queries/buds";
 import { queryKeys } from "#/queries/keys";
 import { adminDeleteBud, adminLockBud } from "#/server/admin";
+import { editBud } from "#/server/buds/edit";
+import type { FormatSpan } from "#/server/indexer/validate";
 import { BskyCrosspostPrompt } from "./BskyCrosspostPrompt";
 import { BudProse } from "./BudProse";
+import { ContinueEditor, type Draft } from "./ContinueStory";
 
 const dateFmt = new Intl.DateTimeFormat("en-US", {
 	month: "long",
@@ -38,6 +41,9 @@ export function Bud({
 	const { data: bud } = useQuery(budQuery(uri, ancestors));
 	const { canDeleteBuds, canLockBuds } = useAdminPermissions();
 	const [adminBusy, setAdminBusy] = useState(false);
+	const [editing, setEditing] = useState(false);
+	const [editSaving, setEditSaving] = useState(false);
+	const [editError, setEditError] = useState<string | null>(null);
 
 	const ancestorsReady =
 		!ancestors ||
@@ -45,6 +51,68 @@ export function Bud({
 
 	if (!ancestorsReady) return null;
 	if (!bud) return <DotPulse />;
+
+	const canEdit =
+		!!viewer &&
+		!!bud.author?.did &&
+		bud.author.did === viewer &&
+		!bud.locked &&
+		(bud.children?.length ?? 0) === 0;
+
+	if (editing) {
+		const handleSave = async (draft: Draft) => {
+			if (editSaving) return;
+			setEditSaving(true);
+			setEditError(null);
+			try {
+				await editBud({
+					data: {
+						uri,
+						title: draft.title,
+						text: draft.text,
+						formatting: draft.formatting,
+					},
+				});
+				queryClient.invalidateQueries({ queryKey: queryKeys.bud(uri) });
+				setEditSaving(false);
+				setEditing(false);
+			} catch (e) {
+				setEditError(
+					e instanceof Error ? e.message : "Could not save this passage.",
+				);
+				setEditSaving(false);
+			}
+		};
+		const initialFormatting = bud.formatting
+			?.filter(
+				(span): span is FormatSpan =>
+					span.type === "bold" ||
+					span.type === "italic" ||
+					span.type === "underline" ||
+					span.type === "strikethrough",
+			)
+			.map((span) => ({ start: span.start, end: span.end, type: span.type }));
+		return (
+			<article className="story">
+				<ContinueEditor
+					onSubmit={handleSave}
+					onCancel={() => {
+						setEditing(false);
+						setEditError(null);
+					}}
+					saving={editSaving}
+					error={editError}
+					action="save"
+					initial={{
+						title: bud.title,
+						text: bud.text,
+						formatting: initialFormatting,
+					}}
+					placeholder="Keep writing…"
+				/>
+			</article>
+		);
+	}
 
 	return (
 		<>
@@ -73,6 +141,17 @@ export function Bud({
 					<div className="byline-actions">
 						<BranchLink bud={bud} />
 						<PollenButton bud={bud} />
+						{canEdit && (
+							<button
+								type="button"
+								className="share-button"
+								aria-label="Edit bud"
+								title="Edit bud"
+								onClick={() => setEditing(true)}
+							>
+								<Pencil size={13} strokeWidth={1.8} />
+							</button>
+						)}
 						{viewer && (
 							<button
 								type="button"

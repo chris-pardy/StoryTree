@@ -2,10 +2,22 @@ import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { BloomFeed } from "#/components/BloomFeed";
 import { DotPulse } from "#/components/DotPulse";
+import { siteOgMeta } from "#/lib/og-meta";
+import { loadSiteMeta } from "#/server/site-meta";
 
 const rootApi = getRouteApi("__root__");
 
 export const Route = createFileRoute("/")({
+	loader: () => loadSiteMeta(),
+	head: ({ loaderData }) => ({
+		meta: siteOgMeta({
+			title: "Branchline — stories grow in branches",
+			description:
+				"A place to grow stories together, one bloom at a time. Read a path. Pick up where the last writer left off. Watch stories branch.",
+			imageUrl: `${loaderData?.publicUrl ?? ""}/og/site.png`,
+			pageUrl: `${loaderData?.publicUrl ?? ""}/`,
+		}),
+	}),
 	component: Landing,
 });
 
@@ -26,6 +38,11 @@ function Landing() {
 						It&rsquo;s a place to grow stories together, one bloom at a time.
 						Read a path down through the tree. Pick up where the last writer
 						left off. Watch stories become branches.
+					</p>
+					<p className="masthead-lede">
+						Every bud is short — at most 500 words. Each one sits quiet for a
+						day, then blooms for the next writer. Many branches may grow from a
+						bloom, each telling its own story.
 					</p>
 					<p className="masthead-lede">
 						<Link to="/about">More about branchline →</Link>

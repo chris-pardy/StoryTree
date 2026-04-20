@@ -1,7 +1,19 @@
 import "./policy-prose.css";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { siteOgMeta } from "#/lib/og-meta";
+import { loadSiteMeta } from "#/server/site-meta";
 
 export const Route = createFileRoute("/atmosphere")({
+	loader: () => loadSiteMeta(),
+	head: ({ loaderData }) => ({
+		meta: siteOgMeta({
+			title: "One account, the whole atmosphere · Branchline",
+			description:
+				"Branchline uses an Atmosphere Account — the same identity that powers Bluesky and a growing number of AT Protocol apps. One login, yours to keep.",
+			imageUrl: `${loaderData?.publicUrl ?? ""}/og/site.png`,
+			pageUrl: `${loaderData?.publicUrl ?? ""}/atmosphere`,
+		}),
+	}),
 	component: AtmospherePage,
 });
 

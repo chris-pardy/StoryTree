@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { getSessionAgent } from "../auth/session";
 import { BSKY_MAX_POST_GRAPHEMES, getPublicUrl } from "../config";
+import { buildBudExternalEmbed } from "./og-embed";
 
 const BSKY_POST_COLLECTION = "app.bsky.feed.post";
 
@@ -57,6 +58,12 @@ export const crosspostBudToBsky = createServerFn({ method: "POST" })
 
 		const facets = [buildLinkFacet(text, budUrl)];
 
+		const embed = await buildBudExternalEmbed({
+			agent,
+			budUri: data.budUri,
+			budUrl,
+		});
+
 		const resp = await agent.com.atproto.repo.createRecord({
 			repo: did,
 			collection: BSKY_POST_COLLECTION,
@@ -64,6 +71,7 @@ export const crosspostBudToBsky = createServerFn({ method: "POST" })
 				$type: BSKY_POST_COLLECTION,
 				text,
 				facets,
+				...(embed ? { embed } : {}),
 				createdAt: new Date().toISOString(),
 			},
 			validate: true,

@@ -190,6 +190,7 @@ async function loadExisting(prisma: PrismaClient, uri: string) {
 		uri: row.uri,
 		authorDid: row.authorDid,
 		childCount: row._count.children,
+		locked: row.locked,
 	};
 }
 
@@ -322,9 +323,10 @@ export async function processBudDelete(
 	}
 
 	// Hard delete when no one has branched off (pollen cascades via FK).
-	// Otherwise soft-delete: keep the row so descendants stay attached, but
-	// null the author and wipe content; pollen has to be removed explicitly
-	// because the bud row itself isn't going away.
+	// Otherwise soft-delete: keep the row and its text so the downstream
+	// path still reads — the words are load-bearing for every writer who
+	// already replied. Null the author so the byline renders as Anonymous,
+	// and drop pollen explicitly since the row itself isn't going away.
 	if (existing && existing.childCount === 0) {
 		await prisma.bud.delete({ where: { uri } });
 	} else {
@@ -334,9 +336,6 @@ export async function processBudDelete(
 				where: { uri },
 				data: {
 					authorDid: null,
-					title: "",
-					text: "",
-					formatting: Prisma.DbNull,
 				},
 			});
 		});

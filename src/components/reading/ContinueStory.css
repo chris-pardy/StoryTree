@@ -29,6 +29,57 @@
 	margin-bottom: 4rem;
 }
 
+.blooming-notice-wrap {
+	display: flex;
+	justify-content: center;
+	margin-top: 0;
+}
+
+.blooming-notice {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0 0.75rem 0.55rem;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-weight: 400;
+	font-size: 1.05rem;
+	letter-spacing: -0.002em;
+	color: color-mix(in oklab, var(--sea-ink-soft) 60%, transparent);
+}
+
+.blooming-notice-dot {
+	width: 0.45rem;
+	height: 0.45rem;
+	border-radius: 50%;
+	background: color-mix(in oklab, var(--lagoon-deep) 55%, transparent);
+	box-shadow: 0 0 0 0 color-mix(in oklab, var(--lagoon-deep) 40%, transparent);
+	animation: blooming-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes blooming-pulse {
+	0%, 100% {
+		opacity: 0.5;
+		box-shadow: 0 0 0 0 color-mix(in oklab, var(--lagoon-deep) 35%, transparent);
+	}
+	50% {
+		opacity: 1;
+		box-shadow: 0 0 0 4px
+			color-mix(in oklab, var(--lagoon-deep) 0%, transparent);
+	}
+}
+
+.edit-pollen-note {
+	margin: 0 0 1.1rem;
+	font-family: "Fraunces", Georgia, serif;
+	font-style: italic;
+	font-weight: 400;
+	font-size: 0.95rem;
+	line-height: 1.4;
+	letter-spacing: -0.002em;
+	color: color-mix(in oklab, var(--sea-ink-soft) 58%, transparent);
+}
+
 .continue-title-input {
 	display: block;
 	width: 100%;
@@ -67,6 +118,21 @@
 
 .continue-hint {
 	color: color-mix(in oklab, var(--sea-ink-soft) 42%, transparent);
+}
+
+.continue-submit-actions {
+	display: flex;
+	align-items: baseline;
+	gap: 0.9rem;
+}
+
+.continue-wordcount {
+	font-variant-numeric: tabular-nums;
+	color: color-mix(in oklab, var(--sea-ink-soft) 42%, transparent);
+}
+
+.continue-wordcount.is-over {
+	color: var(--warning, #b1321a);
 }
 
 .continue-submit {

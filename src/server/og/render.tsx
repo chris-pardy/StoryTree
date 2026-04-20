@@ -114,37 +114,203 @@ function StatChip({ icon, label }: { icon: React.ReactNode; label: string }) {
 	);
 }
 
-export async function renderBudOgPng(card: OgCard): Promise<Buffer> {
-	const fonts = await loadOgFonts();
+export type ProfileOgCard = {
+	displayName: string | null;
+	handle: string;
+	bloomCount: number;
+	plantingCount: number;
+};
 
-	const svg = await satori(
+const PROFILE_NAME_MAX = 60;
+
+function rasterize(svg: string): Buffer {
+	const resvg = new Resvg(svg, {
+		fitTo: { mode: "width", value: WIDTH },
+		background: FOAM,
+	});
+	return Buffer.from(resvg.render().asPng());
+}
+
+function shellStyle(): React.CSSProperties {
+	return {
+		width: WIDTH,
+		height: HEIGHT,
+		display: "flex",
+		flexDirection: "column",
+		backgroundColor: FOAM,
+		backgroundImage: `radial-gradient(900px 480px at 50% -12%, rgba(79,184,178,0.36), transparent 70%), linear-gradient(180deg, ${SAND} 0%, ${FOAM} 58%, #e7f3ec 100%)`,
+		padding: "64px 80px",
+		fontFamily: "Manrope",
+		color: INK,
+	};
+}
+
+function Wordmark({ align }: { align: "flex-start" | "flex-end" }) {
+	return (
 		<div
 			style={{
-				width: WIDTH,
-				height: HEIGHT,
 				display: "flex",
-				flexDirection: "column",
-				backgroundColor: FOAM,
-				backgroundImage: `radial-gradient(900px 480px at 50% -12%, rgba(79,184,178,0.36), transparent 70%), linear-gradient(180deg, ${SAND} 0%, ${FOAM} 58%, #e7f3ec 100%)`,
-				padding: "64px 80px",
-				fontFamily: "Manrope",
-				color: INK,
+				alignItems: "center",
+				justifyContent: align,
+				fontSize: 20,
+				fontWeight: 700,
+				letterSpacing: 6,
+				textTransform: "uppercase",
+				color: LAGOON_DEEP,
 			}}
 		>
+			<span style={{ display: "flex" }}>branchline.ink</span>
+		</div>
+	);
+}
+
+export async function renderSiteOgPng(): Promise<Buffer> {
+	const fonts = await loadOgFonts();
+	const svg = await satori(
+		<div style={shellStyle()}>
+			<Wordmark align="flex-end" />
+			<div
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					justifyContent: "center",
+					marginTop: 44,
+					flex: 1,
+					minHeight: 0,
+				}}
+			>
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						fontFamily: "Fraunces",
+						fontWeight: 500,
+						fontSize: 124,
+						lineHeight: 1.05,
+						letterSpacing: -2,
+						color: INK,
+					}}
+				>
+					<span style={{ display: "flex" }}>Stories grow</span>
+					<span
+						style={{
+							display: "flex",
+							fontFamily: "Fraunces",
+							fontWeight: 400,
+							fontStyle: "italic",
+							color: LAGOON_DEEP,
+						}}
+					>
+						in branches.
+					</span>
+				</div>
+				<div
+					style={{
+						display: "flex",
+						marginTop: 28,
+						fontSize: 30,
+						fontWeight: 400,
+						color: INK_SOFT,
+					}}
+				>
+					Read a branch, grow a bud, watch stories bloom.
+				</div>
+			</div>
+		</div>,
+		{ width: WIDTH, height: HEIGHT, fonts },
+	);
+	return rasterize(svg);
+}
+
+export async function renderProfileOgPng(card: ProfileOgCard): Promise<Buffer> {
+	const fonts = await loadOgFonts();
+	const display = card.displayName?.trim() || `@${card.handle}`;
+	const subtitle = card.displayName?.trim() ? `@${card.handle}` : null;
+	const svg = await satori(
+		<div style={shellStyle()}>
+			<Wordmark align="flex-end" />
+			<div
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					justifyContent: "center",
+					marginTop: 44,
+					flex: 1,
+					minHeight: 0,
+					overflow: "hidden",
+				}}
+			>
+				<div
+					style={{
+						display: "flex",
+						fontSize: 24,
+						fontWeight: 700,
+						letterSpacing: 4,
+						textTransform: "uppercase",
+						color: LAGOON_DEEP,
+					}}
+				>
+					<span style={{ display: "flex" }}>Profile</span>
+				</div>
+				<div
+					style={{
+						display: "flex",
+						marginTop: 18,
+						fontFamily: "Fraunces",
+						fontWeight: 500,
+						fontSize: 96,
+						lineHeight: 1.1,
+						letterSpacing: -1.4,
+						color: INK,
+						maxHeight: 96 * 1.1 * 2 + 96 * DESCENDER_PAD,
+						overflow: "hidden",
+					}}
+				>
+					{clamp(display, PROFILE_NAME_MAX)}
+				</div>
+				{subtitle && (
+					<div
+						style={{
+							display: "flex",
+							marginTop: 20,
+							fontSize: 30,
+							fontWeight: 400,
+							color: INK_SOFT,
+						}}
+					>
+						{subtitle}
+					</div>
+				)}
+			</div>
 			<div
 				style={{
 					display: "flex",
 					alignItems: "center",
-					justifyContent: "flex-end",
-					fontSize: 20,
-					fontWeight: 700,
-					letterSpacing: 6,
-					textTransform: "uppercase",
-					color: LAGOON_DEEP,
+					gap: 14,
+					marginTop: 28,
 				}}
 			>
-				<span style={{ display: "flex" }}>branchline.ink</span>
+				<StatChip
+					icon={<SproutIcon />}
+					label={`${card.bloomCount} ${card.bloomCount === 1 ? "bloom" : "blooms"}`}
+				/>
+				<StatChip
+					icon={<SparklesIcon />}
+					label={`${card.plantingCount} ${card.plantingCount === 1 ? "planting" : "plantings"}`}
+				/>
 			</div>
+		</div>,
+		{ width: WIDTH, height: HEIGHT, fonts },
+	);
+	return rasterize(svg);
+}
+
+export async function renderBudOgPng(card: OgCard): Promise<Buffer> {
+	const fonts = await loadOgFonts();
+
+	const svg = await satori(
+		<div style={shellStyle()}>
+			<Wordmark align="flex-end" />
 
 			<div
 				style={{
@@ -207,9 +373,5 @@ export async function renderBudOgPng(card: OgCard): Promise<Buffer> {
 		{ width: WIDTH, height: HEIGHT, fonts },
 	);
 
-	const resvg = new Resvg(svg, {
-		fitTo: { mode: "width", value: WIDTH },
-		background: FOAM,
-	});
-	return Buffer.from(resvg.render().asPng());
+	return rasterize(svg);
 }

@@ -1,9 +1,50 @@
-import "./policy-prose.css";
-import { createFileRoute } from "@tanstack/react-router";
+import "./about.css";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Nut, Sparkles, Sprout, Trees } from "lucide-react";
+import type { ReactNode } from "react";
+import { BloomingNotice } from "#/components/reading/ContinueStory";
+import { siteOgMeta } from "#/lib/og-meta";
+import { loadSiteMeta } from "#/server/site-meta";
 
-export const Route = createFileRoute("/about")({ component: AboutPage });
+export const Route = createFileRoute("/about")({
+	loader: () => loadSiteMeta(),
+	head: ({ loaderData }) => ({
+		meta: siteOgMeta({
+			title: "About · Branchline",
+			description:
+				"Branchline is a place to grow stories together, one bloom at a time. Each bud is at most 500 words; every reader can write the next.",
+			imageUrl: `${loaderData?.publicUrl ?? ""}/og/site.png`,
+			pageUrl: `${loaderData?.publicUrl ?? ""}/about`,
+		}),
+	}),
+	component: AboutPage,
+});
+
+function LifecycleSection({
+	icon,
+	title,
+	children,
+}: {
+	icon: ReactNode;
+	title: string;
+	children: ReactNode;
+}) {
+	return (
+		<section className="lifecycle-section">
+			<header className="lifecycle-head">
+				<span className="lifecycle-icon" aria-hidden="true">
+					{icon}
+				</span>
+				<h2 className="lifecycle-title">{title}</h2>
+			</header>
+			{children}
+		</section>
+	);
+}
 
 function AboutPage() {
+	const demoBloomsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
 	return (
 		<main className="reading-column px-6 pb-28 pt-16 sm:pt-24">
 			<header className="reading-masthead rise-in">
@@ -14,80 +55,71 @@ function AboutPage() {
 					<em>in branches.</em>
 				</h1>
 				<p className="masthead-lede">
-					It&rsquo;s a place to grow stories together, one bloom at a time.
+					A place to grow stories together, one bloom at a time. Every story
+					moves through the same small lifecycle &mdash; seed, bud, pollen,
+					tree.
 				</p>
 			</header>
 
-			<section
-				className="policy-prose rise-in"
-				style={{ animationDelay: "180ms" }}
-			>
-				<h2>The idea</h2>
-				<p>
-					A story on branchline starts as a <em>seed</em> — a short opening bud,
-					hand-picked, with nothing after it. From that seed, the story grows.
-					Anyone can read a path of buds down from the seed, and any logged-in
-					reader can extend the latest bloom on that path by writing the next
-					bud themselves. When two writers extend the same bloom, the story
-					branches, and both versions live on.
-				</p>
-				<p>
-					Each bud is at most <strong>500 words</strong>. That cap is the whole
-					game: small enough to write in one sitting, small enough to read on
-					impulse, small enough that a stranger&rsquo;s contribution
-					doesn&rsquo;t feel like a hijack. A story isn&rsquo;t a novel one
-					person is grinding through — it&rsquo;s a shared garden of paths, some
-					long, some short, some abandoned, some still growing tonight.
-				</p>
+			<div className="lifecycle rise-in" style={{ animationDelay: "180ms" }}>
+				<LifecycleSection
+					icon={<Nut size={18} strokeWidth={1.6} />}
+					title="Seed"
+				>
+					<p>
+						Every story starts as a <em>seed</em>. Seeds are <strong>rare</strong>.
+						When one finds its way to you, plant it carefully &mdash; whatever you
+						write on it becomes the root of every branch that grows from it. If
+						nothing is coming to you, pass the seed along to someone else whose
+						opening line you&rsquo;d rather read.
+					</p>
+				</LifecycleSection>
 
-				<h2>Reading a bloom</h2>
-				<p>
-					A <em>bloom</em> is a bud that&rsquo;s ready to be followed — past its
-					growing window and still open for the next writer to extend. Reading
-					on branchline means picking a bloom and walking the path of ancestor
-					buds above it, from the seed down to the bloom itself — a linear
-					sequence of buds by (usually) several different authors, stitched
-					together by the choices earlier readers-turned-writers made along the
-					way. The home feed surfaces the blooms that are open right now: the
-					ones readers are pollinating, the paths that are still open to be
-					extended.
-				</p>
+				<LifecycleSection
+					icon={<Sprout size={18} strokeWidth={1.6} />}
+					title="Bud"
+				>
+					<p>
+						Each bud is short &mdash; at most <strong>500 words</strong>. Small
+						enough to write in one sitting, long enough to mean something.
+					</p>
+					<p>
+						For its first <strong>24 hours</strong> a bud is <em>growing</em>:
+						visible and readable, but not yet open to be extended. That window
+						gives the author and first readers a quiet moment with the bud
+						before the next writer picks it up.
+					</p>
+					<div className="lifecycle-bloom-demo">
+						<BloomingNotice bloomsAt={demoBloomsAt} />
+					</div>
+				</LifecycleSection>
 
-				<h2>Writing the next bud</h2>
-				<p>
-					When you finish reading a bloom you can keep going. The bloom you just
-					read becomes the parent of whatever you write next. Two simple rules
-					shape the pacing:
-				</p>
-				<ul>
-					<li>
-						<strong>A 24-hour growing window.</strong> A bud can&rsquo;t be
-						built on for the first day after it&rsquo;s written. That gives its
-						author and its first readers a quiet moment with it before anyone
-						else takes the next step.
-					</li>
-					<li>
-						<strong>No back-to-back self-replies.</strong> You can&rsquo;t
-						extend your own bud directly. Two authors can ping-pong, but no one
-						writes a whole novel under one handle. The form insists on company.
-					</li>
-				</ul>
-				<p>
-					Together these rules turn writing into something closer to
-					conversation than to authorship — you make a move, then you wait to
-					see who answers.
-				</p>
+				<LifecycleSection
+					icon={<Trees size={18} strokeWidth={1.6} />}
+					title="Tree"
+				>
+					<p>
+						Once a bud has bloomed, many branches may grow from it. Each branch
+						tells its own story. One rule: you can&rsquo;t continue your own
+						bud. A tree is nurtured not by a single author but by the readers
+						who pick it up.
+					</p>
+				</LifecycleSection>
 
-				<h2>Pollen</h2>
-				<p>
-					Pollen is the only signal branchline asks for. One grain per reader
-					per bud, no scores, no axes. Pollen feeds the bloom ranking on the
-					home feed and decays over time, so what you see is the writing readers
-					are responding to <em>now</em>, not the writing that happened to be
-					first.
-				</p>
+				<LifecycleSection
+					icon={<Sparkles size={18} strokeWidth={1.6} />}
+					title="Pollen"
+				>
+					<p>
+						Leave pollen on the buds you love to help them reach new readers.
+						Pollen shapes the home feed and decays over time, so what you see is
+						the writing people are responding to <em>now</em>, not the writing
+						that happened to be first.
+					</p>
+				</LifecycleSection>
+			</div>
 
-				<h2>Built on the AT Protocol</h2>
+			<section className="about-outro">
 				<p>
 					branchline is an AppView over the{" "}
 					<a
@@ -97,28 +129,10 @@ function AboutPage() {
 					>
 						AT Protocol
 					</a>
-					. You sign in with your existing atproto handle (your Bluesky account
-					works), and every bud you write is stored as a record in <em>your</em>{" "}
-					repository, on your PDS, under a DID you control. branchline indexes
-					those records so other people can find and read them, but the
-					canonical copy is always yours. If you delete a bud from your repo, it
-					falls out of the index. If branchline disappears tomorrow, your
-					writing doesn&rsquo;t.
-				</p>
-				<p>
-					For the full breakdown of what branchline stores, what it asks
-					permission for, and what it never touches, see the{" "}
-					<a href="/policy">policy page</a>.
-				</p>
-
-				<h2>Where this is going</h2>
-				<p>
-					branchline is in early development. The seed list is small and
-					hand-curated. The ranking is a first pass. Bookmarks, follows, and
-					per-story feeds are on the way. The shape of the form — short buds,
-					branching trees, shared authorship — is the part that&rsquo;s settled.
-					Everything around it is still being written, which feels like the
-					right way to build something about writing together.
+					. Your buds live in <em>your</em> repo, under a handle you control
+					&mdash; read more about the{" "}
+					<Link to="/atmosphere">account model</Link> or the{" "}
+					<Link to="/policy">policy page</Link>.
 				</p>
 			</section>
 		</main>

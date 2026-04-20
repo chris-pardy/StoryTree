@@ -1,0 +1,74 @@
+.lifecycle {
+	display: flex;
+	flex-direction: column;
+	gap: 3rem;
+	margin-top: 3rem;
+}
+
+.lifecycle-section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.9rem;
+	color: var(--sea-ink);
+	line-height: 1.65;
+}
+
+.lifecycle-head {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.lifecycle-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: 50%;
+	background: color-mix(in oklab, var(--lagoon) 14%, transparent);
+	color: var(--lagoon-deep);
+	flex-shrink: 0;
+}
+
+.lifecycle-title {
+	font-family: "Fraunces", Georgia, serif;
+	font-weight: 500;
+	font-size: 1.35rem;
+	letter-spacing: -0.012em;
+	margin: 0;
+	color: var(--sea-ink);
+}
+
+.lifecycle-section p {
+	margin: 0;
+}
+
+.lifecycle-section em {
+	font-style: italic;
+}
+
+.lifecycle-bloom-demo {
+	margin: 0.35rem 0;
+}
+
+.about-outro {
+	margin-top: 3.5rem;
+	padding-top: 1.75rem;
+	border-top: 1px solid
+		color-mix(in oklab, var(--sea-ink-soft) 18%, transparent);
+	color: var(--sea-ink-soft);
+	font-size: 0.95rem;
+	line-height: 1.6;
+}
+
+.about-outro a {
+	color: var(--lagoon-deep);
+	text-decoration: none;
+	border-bottom: 1px solid
+		color-mix(in oklab, var(--lagoon-deep) 35%, transparent);
+}
+
+.about-outro a:hover {
+	border-bottom-color: var(--lagoon-deep);
+}

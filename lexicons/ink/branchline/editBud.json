@@ -1,0 +1,89 @@
+{
+  "lexicon": 1,
+  "id": "ink.branchline.editBud",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Edit the title, text, and/or inline formatting of an existing bud. The caller must be signed in and must be the bud's author. The bud must have no children and must not be locked — edits to a bud with descendants would reshape text that later writers have already continued from, and locked buds are frozen by an admin. The AppView overwrites the ink.branchline.bud record in the caller's PDS via putRecord and mirrors the new row into the local read cache. `createdAt` and `bloomsAt` are preserved; the PDS assigns a new CID.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "title", "text"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri",
+              "description": "AT-URI of the bud to edit."
+            },
+            "title": {
+              "type": "string",
+              "maxGraphemes": 120,
+              "maxLength": 1200
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 20000
+            },
+            "formatting": {
+              "type": "array",
+              "description": "Byte-offset inline formatting spans over `text`. Replaces any prior spans on the bud.",
+              "items": {
+                "type": "ref",
+                "ref": "ink.branchline.bud#formatSpan"
+              }
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "format": "cid",
+              "description": "The new CID assigned by the PDS after the record is overwritten."
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "Unauthorized",
+          "description": "The caller is not signed in."
+        },
+        {
+          "name": "BudNotFound",
+          "description": "No bud exists at the given URI in the AppView."
+        },
+        {
+          "name": "NotOwner",
+          "description": "The caller is not the bud's author."
+        },
+        {
+          "name": "BudHasChildren",
+          "description": "The bud has one or more continuations and can no longer be edited."
+        },
+        {
+          "name": "BudLocked",
+          "description": "The bud has been locked by an admin and can no longer be edited."
+        },
+        {
+          "name": "WordLimitExceeded",
+          "description": "The edited bud text exceeds the 500-word ceiling."
+        },
+        {
+          "name": "InvalidFormatting",
+          "description": "A formatting span is malformed — offsets out of bounds, start >= end, or an unknown span type."
+        }
+      ]
+    }
+  }
+}

@@ -121,9 +121,18 @@
           "type": "boolean",
           "description": "True when the bud has not yet reached its bloomsAt time and is still in the growing window."
         },
+        "bloomsAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "Timestamp when this bud finishes its growing window and blooms into the feed. Present on every bud; compare with the current time rather than relying on `growing` alone when a live countdown is needed."
+        },
         "locked": {
           "type": "boolean",
           "description": "True when the bud's bloom time can no longer be extended."
+        },
+        "viewerCanEdit": {
+          "type": "boolean",
+          "description": "True when the authenticated viewer is permitted to edit this bud — they are the author, the bud has no children, and it is not locked. Omitted when there is no viewer session."
         },
         "viewerPollinated": {
           "type": "boolean",
