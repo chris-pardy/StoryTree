@@ -19,10 +19,14 @@ primary_region = "iad"
   # FLY_PROCESS_GROUP so only the "indexer" machine actually starts it — the
   # "web" machines are on the allowlist-by-omission.
   INDEXER_ENABLED = "true"
+  # Opts every machine in to the daily-stats scheduler. scheduler/boot.ts gates
+  # on FLY_PROCESS_GROUP so only the "scheduler" machine runs the cron loop.
+  SCHEDULER_ENABLED = "true"
 
 [processes]
   web = "node server.js"
   indexer = "node server.js"
+  scheduler = "node server.js"
 
 [http_service]
   internal_port = 3000

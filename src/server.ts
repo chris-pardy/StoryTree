@@ -9,12 +9,17 @@ import {
 	stopJetstreamSubscriber,
 } from "./server/indexer/boot.ts";
 import { bootstrapPermissions } from "./server/permissions.ts";
+import {
+	bootDailyScheduler,
+	stopDailyScheduler,
+} from "./server/scheduler/boot.ts";
 
 // Runs once per server boot. In dev (vite) this module is re-evaluated on
-// HMR, but the boot helper is idempotent — the dispose hook below tears down
-// the previous subscriber before the new one starts.
+// HMR, but the boot helpers are idempotent — the dispose hook below tears
+// down the previous subscriber/scheduler before the new one starts.
 bootstrapPermissions().catch((err) => console.error("[permissions]", err));
 bootJetstreamSubscriber();
+bootDailyScheduler();
 
 if (import.meta.hot) {
 	import.meta.hot.dispose(() => {
@@ -24,6 +29,9 @@ if (import.meta.hot) {
 		// HMR pipeline.
 		stopJetstreamSubscriber().catch((err) =>
 			console.error("[indexer] HMR dispose error", err),
+		);
+		stopDailyScheduler().catch((err) =>
+			console.error("[scheduler] HMR dispose error", err),
 		);
 	});
 }
